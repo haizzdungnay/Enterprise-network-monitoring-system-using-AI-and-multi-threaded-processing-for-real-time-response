@@ -40,6 +40,30 @@ import config
 import warnings
 warnings.filterwarnings('ignore')
 
+# Features mà PacketFeatureExtractor có thể trích xuất từ live traffic.
+# Model phải được train trên ĐÚNG tập features này để inference hoạt động.
+# Lưu ý: 'Protocol' bị loại vì CICIDS2017 không có cột này.
+CANONICAL_FEATURES = [
+    'Flow Duration',
+    'Total Fwd Packets',
+    'Total Backward Packets',
+    'Flow Bytes/s',
+    'Flow Packets/s',
+    'Down/Up Ratio',
+    'Fwd Packet Length Mean',
+    'Bwd Packet Length Mean',
+    'SYN Flag Count',
+    'FIN Flag Count',
+    'RST Flag Count',
+    'PSH Flag Count',
+    'ACK Flag Count',
+    'Active Mean',
+    'Idle Mean',
+    'Flow IAT Mean',
+    'Flow IAT Std',
+    'Destination Port',
+]
+
 
 def generate_synthetic_dataset(n_samples=100000, save_path=None):
     """
@@ -96,8 +120,6 @@ def generate_synthetic_dataset(n_samples=100000, save_path=None):
     # IAT (Inter-Arrival Time) Mean
     normal_iat_mean = np.random.exponential(50000, n_normal)
     normal_iat_std = np.random.exponential(30000, n_normal)
-    # Protocol (6=TCP, 17=UDP, 1=ICMP)
-    normal_protocol = np.random.choice([6, 17, 1], n_normal, p=[0.7, 0.25, 0.05])
     # Destination Port
     normal_dst_port = np.random.choice([80, 443, 53, 22, 8080, 3306],
                                         n_normal, p=[0.3, 0.35, 0.15, 0.1, 0.05, 0.05])
@@ -129,7 +151,6 @@ def generate_synthetic_dataset(n_samples=100000, save_path=None):
     attack_idle = np.random.exponential(200, n_attack)
     attack_iat_mean = np.random.exponential(10000, n_attack)   # IAT nhỏ (packet dồn dập)
     attack_iat_std = np.random.exponential(5000, n_attack)
-    attack_protocol = np.random.choice([6, 17, 1], n_attack, p=[0.5, 0.2, 0.3])
     attack_dst_port = np.random.choice([80, 443, 22, 23, 445, 3389],
                                         n_attack, p=[0.2, 0.15, 0.2, 0.15, 0.15, 0.15])
 
@@ -152,7 +173,6 @@ def generate_synthetic_dataset(n_samples=100000, save_path=None):
         'Idle Mean': np.concatenate([normal_idle, attack_idle]),
         'Flow IAT Mean': np.concatenate([normal_iat_mean, attack_iat_mean]),
         'Flow IAT Std': np.concatenate([normal_iat_std, attack_iat_std]),
-        'Protocol': np.concatenate([normal_protocol, attack_protocol]),
         'Destination Port': np.concatenate([normal_dst_port, attack_dst_port]),
     }
 
@@ -186,26 +206,27 @@ def load_cicids2017(filepath):
     - 80+ features từ CICFlowMeter tool
     - Labels: BENIGN, DoS, DDoS, PortScan, BruteForce, ...
     """
-    print(f"[*] Loading CICIDS2017 từ {filepath}...")
+    print(f"[*] Loading CICIDS2017 tu {filepath}...")
     df = pd.read_csv(filepath, low_memory=False)
 
-    # Clean column names (CICIDS2017 thường có spaces thừa)
+    # Clean column names (CICIDS2017 thuong co spaces thua)
     df.columns = df.columns.str.strip()
 
     # Label column
     label_col = 'Label' if 'Label' in df.columns else 'label'
 
-    # Binary classification: BENIGN = 0, còn lại = 1
+    # Binary classification: BENIGN = 0, con lai = 1
     if df[label_col].dtype == 'object':
         df['Label_Binary'] = (df[label_col].str.strip() != 'BENIGN').astype(int)
     else:
-        # Already numeric (synthetic data)
         df['Label_Binary'] = df[label_col].astype(int)
 
-    # Chọn features quan trọng
-    feature_cols = [c for c in df.columns
-                    if c not in [label_col, 'Label_Binary', 'Flow ID',
-                                 'Source IP', 'Destination IP', 'Timestamp']]
+    # Chi giu cac features co trong CANONICAL_FEATURES va co trong CSV
+    # (loai bo duplicate 'Fwd Header Length.1' va cac cols khong can thiet)
+    feature_cols = [c for c in CANONICAL_FEATURES if c in df.columns]
+    missing = [c for c in CANONICAL_FEATURES if c not in df.columns]
+    if missing:
+        print(f"    [!] Features khong co trong CSV (bo qua): {missing}")
 
     # Handle Inf, NaN
     df[feature_cols] = df[feature_cols].replace([np.inf, -np.inf], np.nan)
@@ -216,7 +237,7 @@ def load_cicids2017(filepath):
         df[col] = pd.to_numeric(df[col], errors='coerce')
     df = df.dropna(subset=feature_cols)
 
-    print(f"    Loaded {len(df)} flows | Features: {len(feature_cols)}")
+    print(f"    Loaded {len(df):,} flows | Features: {len(feature_cols)}")
     return df[feature_cols], df['Label_Binary'], feature_cols
 
 
@@ -305,26 +326,92 @@ def preprocess_data(X, y, feature_names):
     return X_train_scaled, X_test_scaled, y_train, y_test, scaler
 
 
+def load_cicids2017_dir(dataset_dir):
+    """
+    Load và merge toàn bộ CSV files trong thư mục CICIDS2017.
+
+    CICIDS2017 gồm 8 file tương ứng 5 ngày làm việc:
+      Monday    : Traffic bình thường
+      Tuesday   : Brute Force (FTP-Patator, SSH-Patator)
+      Wednesday : DoS/DDoS (Slowloris, Slowhttptest, Hulk, GoldenEye)
+      Thursday  : Web Attacks + Infiltration
+      Friday    : PortScan, DDoS (LOIT)
+    """
+    import glob
+    csv_files = sorted(glob.glob(os.path.join(dataset_dir, "*.csv")))
+    if not csv_files:
+        return None, None, None
+
+    print(f"[*] Tìm thấy {len(csv_files)} file CSV trong {dataset_dir}")
+    dfs = []
+    for f in csv_files:
+        fname = os.path.basename(f)
+        print(f"    → Đang load: {fname}")
+        df = pd.read_csv(f, low_memory=False)
+        df.columns = df.columns.str.strip()
+        dfs.append(df)
+
+    combined = pd.concat(dfs, ignore_index=True)
+    print(f"[+] Merged: {len(combined):,} flows từ {len(csv_files)} files")
+
+    label_col = 'Label' if 'Label' in combined.columns else 'label'
+    combined['Label_Binary'] = (combined[label_col].str.strip() != 'BENIGN').astype(int)
+
+    # Chi giu CANONICAL_FEATURES (loai bo duplicate Fwd Header Length.1, v.v.)
+    feature_cols = [c for c in CANONICAL_FEATURES if c in combined.columns]
+    missing = [c for c in CANONICAL_FEATURES if c not in combined.columns]
+    if missing:
+        print(f"    [!] Features khong co trong CSV (bo qua): {missing}")
+
+    combined[feature_cols] = combined[feature_cols].replace([np.inf, -np.inf], np.nan)
+    combined = combined.dropna(subset=feature_cols)
+    for col in feature_cols:
+        combined[col] = pd.to_numeric(combined[col], errors='coerce')
+    combined = combined.dropna(subset=feature_cols)
+
+    print(f"    Sau clean: {len(combined):,} flows | Features: {len(feature_cols)}")
+    return combined[feature_cols], combined['Label_Binary'], feature_cols
+
+
 def load_dataset():
     """Entry point: Load dataset theo config."""
+    # Ưu tiên 1: Merged cache (tránh phải load lại 8 file mỗi lần)
     if os.path.exists(config.DATASET_PATH):
+        print(f"[*] Dùng merged cache: {config.DATASET_PATH}")
         if config.DATASET_TYPE == "cicids2017":
             X, y, names = load_cicids2017(config.DATASET_PATH)
         else:
             X, y, names = load_unsw_nb15(config.DATASET_PATH)
+
+    # Ưu tiên 2: Thư mục CICIDS2017 thực tế (MachineLearningCSV/MachineLearningCVE)
+    elif (config.DATASET_TYPE == "cicids2017"
+          and hasattr(config, 'DATASET_DIR')
+          and os.path.isdir(config.DATASET_DIR)):
+        X, y, names = load_cicids2017_dir(config.DATASET_DIR)
+        if X is not None:
+            # Lưu merged cache để lần sau load nhanh hơn
+            print(f"[*] Đang lưu merged cache → {config.DATASET_PATH}")
+            merged = X.copy()
+            merged['Label'] = y.values
+            merged.to_csv(config.DATASET_PATH, index=False)
+            print(f"[+] Cache đã lưu: {config.DATASET_PATH}")
+        else:
+            print("[!] Không tìm thấy CSV trong DATASET_DIR. Tạo synthetic data...")
+            X, y, names = _make_synthetic()
+
+    # Ưu tiên 3: Synthetic data (demo / unit test)
     else:
-        print("[!] Không tìm thấy dataset file. Tạo synthetic data...")
-        df = generate_synthetic_dataset(
-            n_samples=100000,
-            save_path=config.DATASET_PATH
-        )
-        label_col = 'Label'
-        feature_cols = [c for c in df.columns if c != label_col]
-        X = df[feature_cols]
-        y = df[label_col]
-        names = feature_cols
+        print("[!] Không tìm thấy dataset. Tạo synthetic data...")
+        X, y, names = _make_synthetic()
 
     return preprocess_data(X, y, names)
+
+
+def _make_synthetic():
+    df = generate_synthetic_dataset(n_samples=100000, save_path=config.DATASET_PATH)
+    label_col = 'Label'
+    feature_cols = [c for c in df.columns if c != label_col]
+    return df[feature_cols], df[label_col], feature_cols
 
 
 if __name__ == "__main__":

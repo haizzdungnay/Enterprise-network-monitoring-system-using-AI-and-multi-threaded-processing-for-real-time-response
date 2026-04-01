@@ -67,8 +67,10 @@ try:
     from torch.utils.data import DataLoader, TensorDataset
     HAS_TORCH = True
     if torch.cuda.is_available():
+        _vram = torch.cuda.get_device_properties(0).total_memory // 1024**2
         print(f"[+] GPU detected: {torch.cuda.get_device_name(0)} "
-              f"| VRAM: {torch.cuda.get_device_properties(0).total_memory // 1024**2} MB")
+              f"| VRAM: {_vram} MB "
+              f"| Profile: {config._GPU_PROFILE_NAME.upper()}")
 except ImportError:
     HAS_TORCH = False
     print("[!] PyTorch chua duoc cai dat. GPU MLP se khong kha dung.")
@@ -77,7 +79,8 @@ except ImportError:
 class _TorchMLP(nn.Module if HAS_TORCH else object):
     """
     PyTorch MLP với GPU support.
-    Tận dụng CUDA Tensor Cores của RTX 3070 Ti cho fast training & inference.
+    Kiến trúc tự động điều chỉnh theo GPU profile (low/medium/high/ultra).
+    Tận dụng CUDA Tensor Cores và AMP (float16) khi GPU hỗ trợ.
     """
     def __init__(self, input_dim, hidden_layers, dropout=0.3):
         super().__init__()
@@ -214,11 +217,12 @@ class IDSModel:
         LÝ THUYẾT: GPU Training với AMP
         ────────────────────────────────
         - Automatic Mixed Precision (AMP): dùng float16 thay float32
-          → 3070 Ti có Tensor Cores tối ưu cho float16
-          → Gần 2x tốc độ, dùng nửa VRAM
+          → GPU có Tensor Cores (Ampere/Ada Lovelace) tối ưu cho float16
+          → Gần 2x tốc độ, giúp tiết kiệm VRAM (quan trọng cho 4GB GPU)
         - DataLoader pin_memory=True: pre-load batch lên pinned RAM
           → Transfer CPU→GPU nhanh hơn qua DMA
         - num_workers=0 trên Windows (fork không được hỗ trợ tốt)
+        - Batch size & hidden layer size tự động theo GPU_PROFILE
         """
         device = torch.device(config.GPU_DEVICE)
         input_dim = X_train.shape[1]
@@ -380,9 +384,10 @@ class IDSModel:
 
         LÝ THUYẾT: Batch Inference
         ─────────────────────────
-        GPU: torch.no_grad() + autocast(fp16) → Tensor Cores 3070 Ti
+        GPU: torch.no_grad() + autocast(fp16) → Tensor Cores (nếu có)
         CPU: numpy vectorization → SIMD/cache-friendly
-        Speed up: 10-100x với batch_size=256
+        Batch size tự động theo GPU profile:
+          low: 128 | medium: 192 | high: 256 | ultra: 512
         """
         if len(X_batch) == 0:
             return np.array([]), np.array([])

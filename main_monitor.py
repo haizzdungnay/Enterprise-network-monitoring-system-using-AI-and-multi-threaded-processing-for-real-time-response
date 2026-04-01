@@ -82,6 +82,7 @@ import multiprocessing
 import logging
 import json
 import signal
+import subprocess
 import numpy as np
 import joblib
 
@@ -93,6 +94,12 @@ from feature_extractor import (
 )
 from ai_model import IDSModel
 
+# Fix Windows console encoding (cp1252 không hỗ trợ đầy đủ Unicode)
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 # ═══════════════════════════════════════════════════════════════
 # LOGGING SETUP
 # ═══════════════════════════════════════════════════════════════
@@ -100,12 +107,30 @@ logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL),
     format='%(asctime)s [%(threadName)s] %(levelname)s: %(message)s',
     handlers=[
-        logging.StreamHandler(stream=__import__('io').TextIOWrapper(
-            __import__('sys').stdout.buffer, encoding='utf-8', line_buffering=True)),
+        logging.StreamHandler(sys.stdout),
         logging.FileHandler(config.LOG_FILE, mode='w', encoding='utf-8')
     ]
 )
 logger = logging.getLogger(__name__)
+
+
+def _prepare_batch_for_scaler(X_batch, scaler):
+    """
+    Đảm bảo số feature của batch khớp với scaler đã train.
+    Nếu thiếu feature thì pad 0; nếu dư thì cắt bớt phần dư.
+    """
+    expected = getattr(scaler, 'n_features_in_', None)
+    if expected is None:
+        return X_batch
+
+    if X_batch.shape[1] == expected:
+        return X_batch
+
+    if X_batch.shape[1] < expected:
+        pad_width = expected - X_batch.shape[1]
+        return np.pad(X_batch, ((0, 0), (0, pad_width)), mode='constant')
+
+    return X_batch[:, :expected]
 
 
 class MonitorStats:
@@ -229,6 +254,7 @@ def run_single_thread(model, scaler, num_packets, stats):
             timestamps = [f[1] for f in batch_buffer]
 
             # Scale features
+            X_batch = _prepare_batch_for_scaler(X_batch, scaler)
             X_scaled = scaler.transform(X_batch)
 
             # Predict
@@ -249,6 +275,7 @@ def run_single_thread(model, scaler, num_packets, stats):
     if batch_buffer:
         X_batch = np.array([f[0] for f in batch_buffer])
         timestamps = [f[1] for f in batch_buffer]
+        X_batch = _prepare_batch_for_scaler(X_batch, scaler)
         X_scaled = scaler.transform(X_batch)
         labels, probas = model.batch_predict(X_scaled)
         now = time.time()
@@ -417,6 +444,7 @@ def ai_worker_thread(worker_id, feature_queue, model, scaler, stats, stop_event)
 
         # Scale & Predict
         try:
+            X_batch = _prepare_batch_for_scaler(X_batch, scaler)
             X_scaled = scaler.transform(X_batch)
             labels, probas = model.batch_predict(X_scaled)
 
@@ -430,7 +458,7 @@ def ai_worker_thread(worker_id, feature_queue, model, scaler, stats, stop_event)
                 # Alert on high-confidence attacks
                 if is_attack and probas[j][1] > config.ALERT_THRESHOLD:
                     logger.warning(
-                        f"🚨 ATTACK DETECTED! Confidence: {probas[j][1]:.2%}"
+                        f"ATTACK DETECTED! Confidence: {probas[j][1]:.2%}"
                     )
         except Exception as e:
             logger.error(f"AI Worker {worker_id} error: {e}")
@@ -621,6 +649,7 @@ def ai_worker_process_fn(worker_id, feature_queue, model_path, scaler_path,
         timestamps = [item[1] for item in batch]
 
         try:
+            X_batch = _prepare_batch_for_scaler(X_batch, scaler)
             X_scaled = scaler.transform(X_batch)
             labels, probas = model.batch_predict(X_scaled)
 
@@ -776,7 +805,9 @@ def main():
     if not os.path.exists(config.MODEL_PATH):
         print("\n[!] Model chưa được train. Chạy: python train_model.py")
         print("[*] Đang tự động train model...")
-        os.system(f"{sys.executable} train_model.py")
+        train_proc = subprocess.run([sys.executable, "train_model.py"], check=False)
+        if train_proc.returncode != 0:
+            raise RuntimeError("Auto-train thất bại. Hãy chạy train_model.py thủ công.")
 
     # Load model
     print("\n[*] Loading model...")

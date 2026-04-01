@@ -15,10 +15,14 @@ Quy trình:
 """
 
 import sys
-sys.stdout.reconfigure(encoding='utf-8')
 import time
 import json
 import os
+
+# Fix Windows console encoding (cp1252 không hỗ trợ ký tự box-drawing UTF-8)
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 import config
 from dataset_loader import load_dataset
 from ai_model import IDSModel, benchmark_single_vs_batch, HAS_TORCH

@@ -4,8 +4,27 @@ scikit-learn>=1.0.0
 joblib>=1.1.0
 xgboost>=2.0.0
 
-# GPU support (RTX 3070 Ti)
-# Cài PyTorch với CUDA 12.x:
+# ══════════════════════════════════════════════════════
+# GPU SUPPORT - Chọn lệnh phù hợp với GPU của bạn
+# ══════════════════════════════════════════════════════
+#
+# Hệ thống tự động detect GPU và chọn profile:
+#   LOW    (≤4GB VRAM) : RTX 3050 Laptop, GTX 1650, MX550
+#   MEDIUM (≤6GB VRAM) : RTX 3060 Laptop 6GB, GTX 1660
+#   HIGH   (≤8GB VRAM) : RTX 3070 Ti, RTX 3070, RTX 4060
+#   ULTRA  (>8GB VRAM) : RTX 3090, RTX 4080, RTX 4090
+#
+# Có thể override thủ công:
+#   GPU_PROFILE=low python train_model.py
+#
+# ── CUDA 12.x (driver ≥ 525, card RTX 30/40 series) ──
 #   pip install torch --index-url https://download.pytorch.org/whl/cu121
-# Hoặc CUDA 11.8:
+#
+# ── CUDA 11.8 (driver cũ hơn, card GTX 10/16/RTX 20/RTX 30) ──
 #   pip install torch --index-url https://download.pytorch.org/whl/cu118
+#
+# ── CPU only (không có GPU rời, hoặc muốn test nhanh) ──
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#
+# Sau khi cài PyTorch, kiểm tra:
+#   python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"

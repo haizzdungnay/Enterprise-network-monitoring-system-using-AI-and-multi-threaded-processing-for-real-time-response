@@ -1,0 +1,331 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.d{font-family:var(--font-sans);padding:.25rem 0}
+.row{display:grid;gap:10px;margin-bottom:10px}
+.r5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.r3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.r2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.cl{font-size:11px;color:var(--color-text-secondary);margin-bottom:3px}
+.cv{font-size:20px;font-weight:500;line-height:1.2}
+.cs{font-size:10px;color:var(--color-text-tertiary);margin-top:2px}
+.st{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--border-radius-md);font-size:11px;font-weight:500}
+.b-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.b-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.b-crit{background:var(--color-background-danger);color:var(--color-text-danger)}
+.arow{display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+.arow:last-child{border-bottom:none}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.d-hi{background:#E24B4A}.d-md{background:#BA7517}.d-lo{background:#639922}
+.at{color:var(--color-text-tertiary);min-width:48px;font-size:10px;font-family:var(--font-mono)}
+.am{flex:1;color:var(--color-text-primary)}.ac{font-family:var(--font-mono);font-size:11px;min-width:36px;text-align:right}
+.lbox{max-height:180px;overflow-y:auto}
+.bar-r{display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:11px}
+.bar-l{min-width:52px;color:var(--color-text-secondary);text-align:right}
+.bar-t{flex:1;height:12px;background:var(--color-background-tertiary);border-radius:2px;overflow:hidden}
+.bar-f{height:100%;border-radius:2px;transition:width .3s}
+.bar-v{min-width:28px;font-family:var(--font-mono);font-size:10px;color:var(--color-text-secondary)}
+.hm-grid{display:grid;grid-template-columns:repeat(24,1fr);gap:1px}
+.hm-cell{aspect-ratio:1;border-radius:2px;transition:background .3s}
+.hm-lbl{font-size:9px;color:var(--color-text-tertiary);text-align:center}
+.q-bar{height:6px;border-radius:3px;background:var(--color-background-tertiary);overflow:hidden;margin-top:4px}
+.q-fill{height:100%;border-radius:3px;transition:width .5s}
+.thr-c{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--color-text-secondary)}
+</style>
+
+<div class="d">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+  <div style="font-size:15px;font-weight:500">Network IDS — SOC console</div>
+  <span class="badge b-ok" id="sB">System nominal</span>
+</div>
+
+<div class="row r5">
+  <div class="c"><div class="cl">Flows analyzed</div><div class="cv" id="mF">0</div><div class="cs" id="mFr">0/sec</div></div>
+  <div class="c"><div class="cl">Alerts today</div><div class="cv" style="color:#E24B4A" id="mA">0</div><div class="cs" id="mAp">0% of traffic</div></div>
+  <div class="c"><div class="cl">Avg latency</div><div class="cv" id="mL">0<span style="font-size:12px;color:var(--color-text-secondary)">ms</span></div><div class="cs" id="mP">P95: 0ms</div></div>
+  <div class="c"><div class="cl">Throughput</div><div class="cv" id="mT">0<span style="font-size:12px;color:var(--color-text-secondary)">/s</span></div><div class="cs">Queue: <span id="mQ">0%</span></div>
+    <div class="q-bar"><div class="q-fill" id="qB" style="width:0%;background:#1D9E75"></div></div>
+  </div>
+  <div class="c"><div class="cl">False positive rate</div><div class="cv" id="mFP">0%</div><div class="cs" id="mConf">Confidence: --</div></div>
+</div>
+
+<div class="row r3">
+  <div class="c">
+    <div class="st">Threat timeline (30s)</div>
+    <div style="position:relative;height:130px"><canvas id="tC"></canvas></div>
+  </div>
+  <div class="c">
+    <div class="st">Attack types</div>
+    <div style="position:relative;height:130px"><canvas id="pC"></canvas></div>
+  </div>
+  <div class="c">
+    <div class="st">Confidence distribution</div>
+    <div style="position:relative;height:130px"><canvas id="hC"></canvas></div>
+  </div>
+</div>
+
+<div class="row r3">
+  <div class="c">
+    <div class="st">Severity breakdown</div>
+    <div style="margin-top:6px">
+      <div class="bar-r"><span class="bar-l">Critical</span><div class="bar-t"><div class="bar-f" id="bH" style="width:0%;background:#E24B4A"></div></div><span class="bar-v" id="bHv">0</span></div>
+      <div class="bar-r"><span class="bar-l">Medium</span><div class="bar-t"><div class="bar-f" id="bM" style="width:0%;background:#BA7517"></div></div><span class="bar-v" id="bMv">0</span></div>
+      <div class="bar-r"><span class="bar-l">Low</span><div class="bar-t"><div class="bar-f" id="bL" style="width:0%;background:#639922"></div></div><span class="bar-v" id="bLv">0</span></div>
+    </div>
+    <div class="st" style="margin-top:10px">Protocol split</div>
+    <div>
+      <div class="bar-r"><span class="bar-l">TCP</span><div class="bar-t"><div class="bar-f" id="pTCP" style="width:60%;background:#534AB7"></div></div><span class="bar-v" id="pTCPv">0</span></div>
+      <div class="bar-r"><span class="bar-l">UDP</span><div class="bar-t"><div class="bar-f" id="pUDP" style="width:25%;background:#378ADD"></div></div><span class="bar-v" id="pUDPv">0</span></div>
+      <div class="bar-r"><span class="bar-l">ICMP</span><div class="bar-t"><div class="bar-f" id="pICMP" style="width:15%;background:#1D9E75"></div></div><span class="bar-v" id="pICMPv">0</span></div>
+    </div>
+  </div>
+  <div class="c">
+    <div class="st">Top source IPs</div>
+    <div id="srcIPs" style="font-size:12px"></div>
+    <div class="st" style="margin-top:8px">Top target ports</div>
+    <div style="position:relative;height:100px"><canvas id="portC"></canvas></div>
+  </div>
+  <div class="c">
+    <div class="st">Recent alerts</div>
+    <div class="lbox" id="aLog"></div>
+  </div>
+</div>
+
+<div class="row r2">
+  <div class="c">
+    <div class="st">Weekly attack heatmap (hour vs day)</div>
+    <div style="display:grid;grid-template-columns:40px 1fr;gap:4px;align-items:center">
+      <div></div>
+      <div style="display:grid;grid-template-columns:repeat(24,1fr);gap:1px">
+        <div class="hm-lbl">0</div><div class="hm-lbl"></div><div class="hm-lbl"></div><div class="hm-lbl">3</div><div class="hm-lbl"></div><div class="hm-lbl"></div>
+        <div class="hm-lbl">6</div><div class="hm-lbl"></div><div class="hm-lbl"></div><div class="hm-lbl">9</div><div class="hm-lbl"></div><div class="hm-lbl"></div>
+        <div class="hm-lbl">12</div><div class="hm-lbl"></div><div class="hm-lbl"></div><div class="hm-lbl">15</div><div class="hm-lbl"></div><div class="hm-lbl"></div>
+        <div class="hm-lbl">18</div><div class="hm-lbl"></div><div class="hm-lbl"></div><div class="hm-lbl">21</div><div class="hm-lbl"></div><div class="hm-lbl"></div>
+      </div>
+    </div>
+    <div id="hmGrid"></div>
+  </div>
+  <div class="c">
+    <div class="st">AI model performance</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+      <div style="background:var(--color-background-tertiary);border-radius:var(--border-radius-md);padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--color-text-secondary)">Accuracy</div>
+        <div style="font-size:18px;font-weight:500" id="aiAcc">99.2%</div>
+      </div>
+      <div style="background:var(--color-background-tertiary);border-radius:var(--border-radius-md);padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--color-text-secondary)">F1 score</div>
+        <div style="font-size:18px;font-weight:500" id="aiF1">98.7%</div>
+      </div>
+      <div style="background:var(--color-background-tertiary);border-radius:var(--border-radius-md);padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--color-text-secondary)">Inference</div>
+        <div style="font-size:18px;font-weight:500" id="aiInf">0.7<span style="font-size:11px">ms</span></div>
+      </div>
+      <div style="background:var(--color-background-tertiary);border-radius:var(--border-radius-md);padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--color-text-secondary)">Recall</div>
+        <div style="font-size:18px;font-weight:500" id="aiRec">97.5%</div>
+      </div>
+    </div>
+    <div class="thr-c">
+      <span>Alert threshold</span>
+      <input type="range" min="30" max="95" value="70" step="5" id="thrS" style="flex:1" oninput="updThr(this.value)">
+      <span id="thrV" style="min-width:30px;font-family:var(--font-mono);font-size:12px">0.70</span>
+    </div>
+    <div class="thr-c" style="margin-top:4px">
+      <span>Batch size</span>
+      <input type="range" min="8" max="128" value="32" step="8" id="bsS" style="flex:1" oninput="updBS(this.value)">
+      <span id="bsV" style="min-width:30px;font-family:var(--font-mono);font-size:12px">32</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const dk=matchMedia('(prefers-color-scheme:dark)').matches;
+const gr=dk?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)';
+const tx=dk?'#9c9a92':'#888780';
+let tF=0,tA=0,tN=0,sLo=0,sMd=0,sHi=0,thresh=.7,batchSz=32;
+let lats=[],confScores=[],srcMap={},portMap={22:0,80:0,443:0,445:0,3389:0,23:0};
+let prTCP=0,prUDP=0,prICMP=0;
+let atkTypes={DDoS:0,Scan:0,Brute:0,Exfil:0};
+let hmData=Array(7).fill(null).map(()=>Array(24).fill(0));
+let t0=Date.now();
+
+const tC=new Chart(document.getElementById('tC'),{type:'line',data:{labels:[],datasets:[
+  {label:'Normal',data:[],borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:1.5},
+  {label:'Attack',data:[],borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,.12)',fill:true,tension:.3,pointRadius:0,borderWidth:1.5}
+]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},plugins:{legend:{display:false}},scales:{x:{display:true,grid:{display:false},ticks:{color:tx,font:{size:9},maxTicksLimit:5}},y:{beginAtZero:true,grid:{color:gr},ticks:{color:tx,font:{size:9}}}}}});
+
+const pC=new Chart(document.getElementById('pC'),{type:'doughnut',data:{labels:['DDoS','Scan','Brute force','Exfiltration'],datasets:[{data:[1,1,1,1],backgroundColor:['#E24B4A','#BA7517','#534AB7','#D85A30'],borderWidth:0}]},
+options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false}}}});
+
+const hC=new Chart(document.getElementById('hC'),{type:'bar',data:{labels:['0-.1','.1-.2','.2-.3','.3-.4','.4-.5','.5-.6','.6-.7','.7-.8','.8-.9','.9-1'],datasets:[{data:Array(10).fill(0),backgroundColor:Array(10).fill(null).map((_,i)=>i<7?'#1D9E75':'#E24B4A'),borderRadius:2,barPercentage:.85}]},
+options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:tx,font:{size:8}}},y:{beginAtZero:true,grid:{color:gr},ticks:{color:tx,font:{size:8}}}}}});
+
+const poC=new Chart(document.getElementById('portC'),{type:'bar',data:{labels:['22','80','443','445','3389','23'],datasets:[{data:[0,0,0,0,0,0],backgroundColor:['#534AB7','#378ADD','#1D9E75','#BA7517','#E24B4A','#D85A30'],borderRadius:2,barThickness:12}]},
+options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',animation:{duration:0},plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:gr},ticks:{color:tx,font:{size:9}}},y:{grid:{display:false},ticks:{color:tx,font:{size:10}}}}}});
+
+function buildHM(){
+  const c=document.getElementById('hmGrid');
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  days.forEach((d,di)=>{
+    const r=document.createElement('div');
+    r.style.cssText='display:grid;grid-template-columns:40px 1fr;gap:4px;align-items:center;margin-bottom:1px';
+    const l=document.createElement('div');
+    l.style.cssText='font-size:10px;color:var(--color-text-tertiary);text-align:right';
+    l.textContent=d;
+    r.appendChild(l);
+    const g=document.createElement('div');
+    g.className='hm-grid';
+    for(let h=0;h<24;h++){
+      const cell=document.createElement('div');
+      cell.className='hm-cell';
+      cell.id='hm-'+di+'-'+h;
+      cell.style.background=dk?'rgba(255,255,255,.04)':'rgba(0,0,0,.03)';
+      g.appendChild(cell);
+    }
+    r.appendChild(g);
+    c.appendChild(r);
+  });
+}
+buildHM();
+
+function updHM(){
+  const mx=Math.max(...hmData.flat(),1);
+  for(let d=0;d<7;d++)for(let h=0;h<24;h++){
+    const v=hmData[d][h]/mx;
+    const el=document.getElementById('hm-'+d+'-'+h);
+    if(el){
+      if(v<.1)el.style.background=dk?'rgba(255,255,255,.04)':'rgba(0,0,0,.03)';
+      else if(v<.3)el.style.background='rgba(226,75,74,.15)';
+      else if(v<.6)el.style.background='rgba(226,75,74,.35)';
+      else el.style.background='rgba(226,75,74,.65)';
+    }
+  }
+}
+
+function addAlert(sev,port,proto,prob){
+  const now=new Date();
+  const ts=now.toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const cls=sev==='critical'?'d-hi':sev==='medium'?'d-md':'d-lo';
+  const cc=sev==='critical'?'color:#E24B4A':sev==='medium'?'color:#BA7517':'color:#639922';
+  const pn=proto===6?'TCP':proto===17?'UDP':'ICMP';
+  const box=document.getElementById('aLog');
+  const d=document.createElement('div');
+  d.className='arow';
+  d.innerHTML='<span class="dot '+cls+'"></span><span class="at">'+ts+'</span><span class="am">'+sev.toUpperCase()+' '+pn+':'+port+'</span><span class="ac" style="'+cc+'">'+(prob*100).toFixed(0)+'%</span>';
+  box.insertBefore(d,box.firstChild);
+  if(box.children.length>25)box.removeChild(box.lastChild);
+}
+
+function sim(){
+  const bs=Math.floor(Math.random()*10)+3;
+  let bn=0,ba=0;
+  for(let i=0;i<bs;i++){
+    tF++;
+    const isA=Math.random()<.18;
+    const prob=isA?(Math.random()*.5+.5):(Math.random()*.35);
+    const lat=Math.random()*35+3;
+    lats.push(lat);if(lats.length>400)lats.shift();
+    confScores.push(prob);if(confScores.length>500)confScores.shift();
+
+    const ports=[22,80,443,445,3389,23];
+    const port=isA?ports[Math.floor(Math.random()*6)]:ports[Math.floor(Math.random()*3)];
+    const proto=[6,6,6,17,17,1][Math.floor(Math.random()*6)];
+    if(proto===6)prTCP++;else if(proto===17)prUDP++;else prICMP++;
+
+    if(isA&&prob>thresh){
+      tA++;ba++;
+      const sev=prob>=.9?'critical':prob>=.8?'medium':'low';
+      if(sev==='critical')sHi++;else if(sev==='medium')sMd++;else sLo++;
+      portMap[port]=(portMap[port]||0)+1;
+
+      const types=['DDoS','Scan','Brute','Exfil'];
+      const tp=types[Math.floor(Math.random()*4)];
+      atkTypes[tp]++;
+
+      const srcIP='10.'+Math.floor(Math.random()*5)+'.'+Math.floor(Math.random()*10)+'.'+Math.floor(Math.random()*255);
+      srcMap[srcIP]=(srcMap[srcIP]||0)+1;
+
+      const dow=new Date().getDay();
+      const hr=new Date().getHours();
+      hmData[(dow+6)%7][hr]++;
+
+      addAlert(sev,port,proto,prob);
+    }else{tN++;bn++;}
+  }
+
+  const el=(Date.now()-t0)/1000;
+  const ts=Math.floor(el)+'s';
+  tC.data.labels.push(ts);
+  tC.data.datasets[0].data.push(bn);
+  tC.data.datasets[1].data.push(ba);
+  if(tC.data.labels.length>30){tC.data.labels.shift();tC.data.datasets[0].data.shift();tC.data.datasets[1].data.shift();}
+  tC.update();
+
+  pC.data.datasets[0].data=[atkTypes.DDoS||1,atkTypes.Scan||1,atkTypes.Brute||1,atkTypes.Exfil||1];
+  pC.update();
+
+  const bins=Array(10).fill(0);
+  confScores.forEach(s=>{const idx=Math.min(Math.floor(s*10),9);bins[idx]++;});
+  hC.data.datasets[0].data=bins;
+  hC.data.datasets[0].backgroundColor=bins.map((_,i)=>i<Math.floor(thresh*10)?'#1D9E75':'#E24B4A');
+  hC.update();
+
+  poC.data.datasets[0].data=[portMap[22]||0,portMap[80]||0,portMap[443]||0,portMap[445]||0,portMap[3389]||0,portMap[23]||0];
+  poC.update();
+
+  const tSv=Math.max(sLo+sMd+sHi,1);
+  document.getElementById('bH').style.width=(sHi/tSv*100)+'%';
+  document.getElementById('bM').style.width=(sMd/tSv*100)+'%';
+  document.getElementById('bL').style.width=(sLo/tSv*100)+'%';
+  document.getElementById('bHv').textContent=sHi;
+  document.getElementById('bMv').textContent=sMd;
+  document.getElementById('bLv').textContent=sLo;
+
+  const tPr=Math.max(prTCP+prUDP+prICMP,1);
+  document.getElementById('pTCP').style.width=(prTCP/tPr*100)+'%';
+  document.getElementById('pUDP').style.width=(prUDP/tPr*100)+'%';
+  document.getElementById('pICMP').style.width=(prICMP/tPr*100)+'%';
+  document.getElementById('pTCPv').textContent=prTCP;
+  document.getElementById('pUDPv').textContent=prUDP;
+  document.getElementById('pICMPv').textContent=prICMP;
+
+  const sorted=Object.entries(srcMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const srcBox=document.getElementById('srcIPs');
+  srcBox.innerHTML=sorted.map(([ip,cnt])=>'<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--color-text-secondary)"><span style="font-family:var(--font-mono);font-size:11px">'+ip+'</span><span style="font-family:var(--font-mono);font-size:11px;color:#E24B4A">'+cnt+'</span></div>').join('');
+
+  document.getElementById('mF').textContent=tF.toLocaleString();
+  document.getElementById('mFr').textContent=Math.round(tF/el)+'/sec';
+  document.getElementById('mA').textContent=tA.toLocaleString();
+  document.getElementById('mAp').textContent=(tA/Math.max(tF,1)*100).toFixed(1)+'% of traffic';
+  const avgL=lats.length?lats.reduce((a,b)=>a+b,0)/lats.length:0;
+  document.getElementById('mL').innerHTML=Math.round(avgL)+'<span style="font-size:12px;color:var(--color-text-secondary)">ms</span>';
+  const s=[...lats].sort((a,b)=>a-b);
+  const p95=s[Math.floor(s.length*.95)]||0;
+  document.getElementById('mP').textContent='P95: '+Math.round(p95)+'ms';
+  document.getElementById('mT').innerHTML=Math.round(tF/el)+'<span style="font-size:12px;color:var(--color-text-secondary)">/s</span>';
+
+  const qFill=Math.min(Math.random()*40+5,100);
+  document.getElementById('mQ').textContent=Math.round(qFill)+'%';
+  const qEl=document.getElementById('qB');
+  qEl.style.width=qFill+'%';
+  qEl.style.background=qFill>80?'#E24B4A':qFill>50?'#BA7517':'#1D9E75';
+
+  const fp=(Math.random()*3+1).toFixed(1);
+  document.getElementById('mFP').textContent=fp+'%';
+  const avgConf=confScores.length?(confScores.filter(c=>c>thresh).reduce((a,b)=>a+b,0)/Math.max(confScores.filter(c=>c>thresh).length,1)):0;
+  document.getElementById('mConf').textContent='Avg conf: '+(avgConf*100).toFixed(0)+'%';
+
+  if(sHi>8){document.getElementById('sB').className='badge b-crit';document.getElementById('sB').textContent='Active threats';}
+  else if(sMd>5){document.getElementById('sB').className='badge b-warn';document.getElementById('sB').textContent='Elevated activity';}
+
+  updHM();
+}
+
+function updThr(v){thresh=v/100;document.getElementById('thrV').textContent=thresh.toFixed(2);}
+function updBS(v){batchSz=+v;document.getElementById('bsV').textContent=v;}
+
+setInterval(sim,700);
+</script>

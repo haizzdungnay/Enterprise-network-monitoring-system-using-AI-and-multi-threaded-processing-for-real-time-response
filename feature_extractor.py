@@ -63,6 +63,8 @@ class PacketFeatureExtractor:
     """
 
     def __init__(self):
+        # 18 features khớp với CANONICAL_FEATURES trong dataset_loader.py
+        # 'Protocol' bị loại vì CICIDS2017 không có cột này
         self.feature_names = [
             'Flow Duration', 'Total Fwd Packets', 'Total Backward Packets',
             'Flow Bytes/s', 'Flow Packets/s', 'Down/Up Ratio',
@@ -71,7 +73,7 @@ class PacketFeatureExtractor:
             'PSH Flag Count', 'ACK Flag Count',
             'Active Mean', 'Idle Mean',
             'Flow IAT Mean', 'Flow IAT Std',
-            'Protocol', 'Destination Port'
+            'Destination Port',
         ]
 
     def extract_from_packet_dict(self, packet_info):
@@ -79,7 +81,7 @@ class PacketFeatureExtractor:
         Trích xuất features từ packet info dictionary.
 
         Input: Dictionary với các trường từ parsed packet
-        Output: numpy array 19 features (matching dataset features)
+        Output: numpy array 18 features (matching CANONICAL_FEATURES in dataset_loader)
 
         LÝ THUYẾT: Feature Alignment
         ────────────────────────────
@@ -108,8 +110,7 @@ class PacketFeatureExtractor:
         features[14] = packet_info.get('idle_mean', 0)
         features[15] = packet_info.get('iat_mean', 0)
         features[16] = packet_info.get('iat_std', 0)
-        features[17] = packet_info.get('protocol', 6)
-        features[18] = packet_info.get('dst_port', 0)
+        features[17] = packet_info.get('dst_port', 0)
 
         return features
 
@@ -335,45 +336,43 @@ def generate_simulated_features():
 
     if is_attack:
         return np.array([
-            np.random.exponential(1000000),         # Duration
-            np.random.poisson(50),                   # Fwd packets
-            np.random.poisson(3),                    # Bwd packets
-            np.random.lognormal(10, 3),              # Flow bytes/s
-            np.random.lognormal(5, 2),               # Flow packets/s
-            np.random.uniform(0.01, 0.5),            # Down/Up ratio
-            np.random.normal(100, 50),               # Fwd pkt len mean
-            np.random.normal(50, 30),                # Bwd pkt len mean
-            np.random.choice([0,1,2,5,10]),          # SYN
-            np.random.choice([0, 1]),                # FIN
-            np.random.choice([0, 1, 2]),             # RST
-            np.random.poisson(8),                    # PSH
-            np.random.poisson(15),                   # ACK
-            np.random.exponential(500),              # Active mean
-            np.random.exponential(200),              # Idle mean
-            np.random.exponential(10000),            # IAT mean
-            np.random.exponential(5000),             # IAT std
-            np.random.choice([6, 17, 1]),            # Protocol
-            np.random.choice([22, 23, 80, 443]),     # Dst port
+            np.random.exponential(1000000),         # Flow Duration
+            np.random.poisson(50),                   # Total Fwd Packets
+            np.random.poisson(3),                    # Total Backward Packets
+            np.random.lognormal(10, 3),              # Flow Bytes/s
+            np.random.lognormal(5, 2),               # Flow Packets/s
+            np.random.uniform(0.01, 0.5),            # Down/Up Ratio
+            np.random.normal(100, 50),               # Fwd Packet Length Mean
+            np.random.normal(50, 30),                # Bwd Packet Length Mean
+            np.random.choice([0, 1, 2, 5, 10]),      # SYN Flag Count
+            np.random.choice([0, 1]),                # FIN Flag Count
+            np.random.choice([0, 1, 2]),             # RST Flag Count
+            np.random.poisson(8),                    # PSH Flag Count
+            np.random.poisson(15),                   # ACK Flag Count
+            np.random.exponential(500),              # Active Mean
+            np.random.exponential(200),              # Idle Mean
+            np.random.exponential(10000),            # Flow IAT Mean
+            np.random.exponential(5000),             # Flow IAT Std
+            np.random.choice([22, 23, 80, 443]),     # Destination Port
         ], dtype=np.float64)
     else:
         return np.array([
-            np.random.exponential(500000),
-            np.random.poisson(10),
-            np.random.poisson(8),
-            np.random.lognormal(8, 2),
-            np.random.lognormal(3, 1),
-            np.random.uniform(0.5, 5.0),
-            np.random.normal(200, 100),
-            np.random.normal(500, 200),
-            np.random.choice([0, 1]),
-            np.random.choice([0, 1]),
-            np.random.choice([0, 1]),
-            np.random.poisson(2),
-            np.random.poisson(5),
-            np.random.exponential(100),
-            np.random.exponential(1000),
-            np.random.exponential(50000),
-            np.random.exponential(30000),
-            np.random.choice([6, 17, 1]),
-            np.random.choice([80, 443, 53, 8080]),
+            np.random.exponential(500000),           # Flow Duration
+            np.random.poisson(10),                   # Total Fwd Packets
+            np.random.poisson(8),                    # Total Backward Packets
+            np.random.lognormal(8, 2),               # Flow Bytes/s
+            np.random.lognormal(3, 1),               # Flow Packets/s
+            np.random.uniform(0.5, 5.0),             # Down/Up Ratio
+            np.random.normal(200, 100),              # Fwd Packet Length Mean
+            np.random.normal(500, 200),              # Bwd Packet Length Mean
+            np.random.choice([0, 1]),                # SYN Flag Count
+            np.random.choice([0, 1]),                # FIN Flag Count
+            np.random.choice([0, 1]),                # RST Flag Count
+            np.random.poisson(2),                    # PSH Flag Count
+            np.random.poisson(5),                    # ACK Flag Count
+            np.random.exponential(100),              # Active Mean
+            np.random.exponential(1000),             # Idle Mean
+            np.random.exponential(50000),            # Flow IAT Mean
+            np.random.exponential(30000),            # Flow IAT Std
+            np.random.choice([80, 443, 53, 8080]),   # Destination Port
         ], dtype=np.float64)

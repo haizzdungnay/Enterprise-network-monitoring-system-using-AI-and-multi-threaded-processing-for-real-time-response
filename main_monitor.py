@@ -74,6 +74,7 @@ Multiprocessing Queue:
 
 import os
 import sys
+sys.stdout.reconfigure(encoding='utf-8')
 import time
 import queue
 import threading
@@ -99,8 +100,9 @@ logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL),
     format='%(asctime)s [%(threadName)s] %(levelname)s: %(message)s',
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(config.LOG_FILE, mode='w')
+        logging.StreamHandler(stream=__import__('io').TextIOWrapper(
+            __import__('sys').stdout.buffer, encoding='utf-8', line_buffering=True)),
+        logging.FileHandler(config.LOG_FILE, mode='w', encoding='utf-8')
     ]
 )
 logger = logging.getLogger(__name__)

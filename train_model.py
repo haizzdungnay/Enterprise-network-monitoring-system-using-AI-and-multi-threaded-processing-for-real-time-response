@@ -14,6 +14,8 @@ Quy trình:
   6. Save model + scaler
 """
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 import time
 import json
 import os

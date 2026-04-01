@@ -20,14 +20,40 @@ Việc tách config ra file riêng giúp:
 import os
 import multiprocessing
 
-# ── Auto-detect GPU (PyTorch / XGBoost CUDA) ──
-try:
-    import torch
-    _CUDA_AVAILABLE = torch.cuda.is_available()
-    _GPU_NAME = torch.cuda.get_device_name(0) if _CUDA_AVAILABLE else "None"
-except ImportError:
-    _CUDA_AVAILABLE = False
-    _GPU_NAME = "None (torch not installed)"
+# ── Auto-detect GPU ──
+# Ưu tiên: torch → XGBoost built-in → nvidia-smi → không có GPU
+def _detect_cuda():
+    """Trả về (available: bool, gpu_name: str)."""
+    # 1. Thử torch (chính xác nhất)
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return True, torch.cuda.get_device_name(0)
+    except ImportError:
+        pass
+    # 2. Thử XGBoost CUDA (built-in, không cần torch)
+    try:
+        import xgboost as xgb
+        import numpy as np
+        _m = xgb.XGBClassifier(n_estimators=1, device='cuda', verbosity=0)
+        _m.fit(np.zeros((2, 2)), [0, 1])
+        return True, "GPU (XGBoost CUDA)"
+    except Exception:
+        pass
+    # 3. Fallback: nvidia-smi
+    try:
+        import subprocess
+        out = subprocess.check_output(
+            ['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'],
+            stderr=subprocess.DEVNULL, timeout=3
+        ).decode().strip().splitlines()
+        if out:
+            return True, out[0]
+    except Exception:
+        pass
+    return False, "None"
+
+_CUDA_AVAILABLE, _GPU_NAME = _detect_cuda()
 
 # ═══════════════════════════════════════════════════════════════
 # 1. ĐƯỜNG DẪN DỮ LIỆU

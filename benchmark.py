@@ -55,6 +55,7 @@ Ví dụ: P=0.9 (90% parallelizable), N=4 cores:
 
 import os
 import sys
+sys.stdout.reconfigure(encoding='utf-8')
 import time
 import json
 import queue

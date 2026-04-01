@@ -41,6 +41,7 @@ INFERENCE OPTIMIZATION:
 """
 
 import time
+import threading
 import numpy as np
 import joblib
 from sklearn.ensemble import RandomForestClassifier
@@ -57,7 +58,7 @@ try:
     HAS_XGBOOST = True
 except ImportError:
     HAS_XGBOOST = False
-    print("[!] XGBoost không được cài đặt. Sử dụng: pip install xgboost")
+    print("[!] XGBoost chua duoc cai dat. Su dung: pip install xgboost")
 
 # ── Thử import PyTorch (optional, GPU support) ──
 try:
@@ -70,7 +71,7 @@ try:
               f"| VRAM: {torch.cuda.get_device_properties(0).total_memory // 1024**2} MB")
 except ImportError:
     HAS_TORCH = False
-    print("[!] PyTorch không được cài đặt. GPU MLP sẽ không khả dụng.")
+    print("[!] PyTorch chua duoc cai dat. GPU MLP se khong kha dung.")
 
 
 class _TorchMLP(nn.Module if HAS_TORCH else object):
@@ -108,6 +109,8 @@ class IDSModel:
         self.model = None
         self.scaler = None
         self.feature_names = None
+        # GPU không thread-safe khi nhiều thread gọi đồng thời
+        self._gpu_lock = threading.Lock() if config.USE_GPU else None
         self._create_model()
 
     def _create_model(self):
@@ -325,6 +328,11 @@ class IDSModel:
 
     def predict(self, X):
         """Predict labels cho input data."""
+        if self._gpu_lock:
+            with self._gpu_lock:
+                if self.model_type == "torch_mlp" and HAS_TORCH:
+                    return self._torch_predict_labels(X)
+                return self.model.predict(X)
         if self.model_type == "torch_mlp" and HAS_TORCH:
             return self._torch_predict_labels(X)
         return self.model.predict(X)
@@ -450,7 +458,6 @@ class IDSModel:
         path = path or config.MODEL_PATH
         if self.model_type == "torch_mlp" and HAS_TORCH:
             torch_path = path.replace('.joblib', '_torch.pt')
-            # input_dim cần biết trước (lấy từ feature_names)
             input_dim = len(self.feature_names) if self.feature_names else 19
             device = torch.device(config.GPU_DEVICE)
             self.model = _TorchMLP(input_dim, config.TORCH_HIDDEN_LAYERS).to(device)
@@ -460,6 +467,11 @@ class IDSModel:
             print(f"[+] PyTorch model loaded: {torch_path}")
         else:
             self.model = joblib.load(path)
+            # XGBoost: model có thể được train trên CUDA nhưng inference
+            # từ numpy array cần chạy trên CPU để tránh device-mismatch crash
+            if self.model_type == "xgboost" and HAS_XGBOOST:
+                self.model.set_params(device='cpu')
+                self._gpu_lock = None  # Inference trên CPU, không cần lock
             print(f"[+] Model loaded: {path}")
 
     def load_scaler(self, path=None):

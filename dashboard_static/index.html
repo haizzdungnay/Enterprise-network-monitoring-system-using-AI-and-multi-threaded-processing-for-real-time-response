@@ -199,9 +199,48 @@ a { color: var(--blue); text-decoration: none; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+/* ── Navigation ── */
+.nav-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 20px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.nav-bar a {
+  padding: 5px 14px; border-radius: 6px; color: var(--text2);
+  transition: all .2s; text-decoration: none; font-weight: 500;
+}
+.nav-bar a:hover { background: var(--bg3); color: var(--text); }
+.nav-bar a.active { background: var(--blue); color: #fff; }
+.nav-bar .spacer { flex:1; }
+.nav-bar .nav-brand { font-weight: 700; color: var(--text); font-size: 13px; letter-spacing: -.3px; }
+
+/* ── Research section ── */
+.research-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.research-grid .card { min-height: 200px; }
+.research-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.rkpi {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; text-align: center;
+}
+.rkpi .rkpi-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+.rkpi .rkpi-val { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.rkpi .rkpi-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+@media (max-width: 900px) {
+  .research-grid { grid-template-columns: 1fr; }
+  .research-kpi { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 </head>
 <body>
+
+<!-- ════════ NAV BAR ════════ -->
+<div class="nav-bar">
+  <span class="nav-brand">&#128737; IDS Enterprise</span>
+  <div class="spacer"></div>
+  <a href="/" class="active">Monitoring</a>
+  <a href="/evaluation">Research & Evaluation</a>
+</div>
 
 <div class="dashboard">
   <!-- ════════ HEADER ════════ -->
@@ -332,7 +371,68 @@ a { color: var(--blue); text-decoration: none; }
     </div>
   </div>
 
-  <!-- ════════ LAYER 5 — DEEP INVESTIGATION (modal) ════════ -->
+  <!-- ════════ LAYER 5 — RESEARCH & PERFORMANCE ════════ -->
+  <div class="layer-label">Layer 5 &mdash; Research performance (benchmark results)</div>
+
+  <!-- KPI row -->
+  <div class="research-kpi" id="researchKpi">
+    <div class="rkpi">
+      <div class="rkpi-label">Single-Thread</div>
+      <div class="rkpi-val" style="color:var(--green)" id="rkST">--</div>
+      <div class="rkpi-sub">predictions/sec</div>
+    </div>
+    <div class="rkpi">
+      <div class="rkpi-label">Multi-Thread</div>
+      <div class="rkpi-val" style="color:var(--blue)" id="rkMT">--</div>
+      <div class="rkpi-sub">predictions/sec</div>
+    </div>
+    <div class="rkpi">
+      <div class="rkpi-label">Multi-Process</div>
+      <div class="rkpi-val" style="color:var(--purple)" id="rkMP">--</div>
+      <div class="rkpi-sub">predictions/sec</div>
+    </div>
+    <div class="rkpi">
+      <div class="rkpi-label">Max Batch Throughput</div>
+      <div class="rkpi-val" style="color:var(--cyan)" id="rkBatch">--</div>
+      <div class="rkpi-sub">samples/sec (batch 512)</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="research-grid">
+    <div class="card">
+      <div class="section-title"><span class="dot" style="background:var(--green)"></span> Pipeline Comparison</div>
+      <div style="position:relative;height:180px"><canvas id="chartPipeline"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="dot" style="background:var(--cyan)"></span> Batch Size Scaling</div>
+      <div style="position:relative;height:180px"><canvas id="chartBatchScale"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="dot" style="background:var(--orange)"></span> Worker Scalability</div>
+      <div style="position:relative;height:180px"><canvas id="chartScalability"></canvas></div>
+    </div>
+  </div>
+
+  <div class="row r2">
+    <div class="card">
+      <div class="section-title"><span class="dot" style="background:var(--purple)"></span> Latency Comparison (ms)</div>
+      <div style="position:relative;height:180px"><canvas id="chartLatency"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="dot" style="background:var(--red)"></span> CPU vs GPU Inference</div>
+      <div style="position:relative;height:180px"><canvas id="chartCpuGpu"></canvas></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin:16px 0 8px">
+    <a href="/evaluation" style="display:inline-flex;align-items:center;gap:6px;padding:8px 24px;background:var(--blue);color:#fff;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:opacity .2s"
+       onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+      &#128202; View Full Research Evaluation Report
+    </a>
+  </div>
+
+  <!-- ════════ DEEP INVESTIGATION (modal) ════════ -->
 </div>
 
 <!-- Alert Detail Modal -->
@@ -698,6 +798,113 @@ function refresh() {
 // Start polling
 setInterval(refresh, 1200);
 refresh();
+
+// ═══════════════════════════════════════════════════════════
+// RESEARCH BENCHMARK CHARTS (loaded once)
+// ═══════════════════════════════════════════════════════════
+const RC = { green: '#3fb950', blue: '#58a6ff', purple: '#bc8cff', cyan: '#39d2c0', orange: '#d18616', red: '#f85149', yellow: '#d29922' };
+const rOpts = {
+  responsive: true, maintainAspectRatio: false,
+  animation: { duration: 400 },
+  plugins: { legend: { labels: { color: '#8b949e', font: { size: 10 } } } },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#6e7681', font: { size: 9 } } },
+    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#6e7681', font: { size: 9 } } }
+  }
+};
+
+fetch('/api/benchmark/summary')
+  .then(r => r.json())
+  .then(bm => {
+    if (bm.error) return;
+
+    // KPI values
+    const t2 = bm.pipeline || {};
+    document.getElementById('rkST').textContent = (t2.single_thread||0).toLocaleString();
+    document.getElementById('rkMT').textContent = (t2.multi_thread||0).toLocaleString();
+    document.getElementById('rkMP').textContent = (t2.multi_process||0).toLocaleString();
+    document.getElementById('rkBatch').textContent = (bm.max_batch_throughput||0).toLocaleString();
+
+    // Pipeline comparison bar chart
+    new Chart(document.getElementById('chartPipeline'), {
+      type: 'bar',
+      data: {
+        labels: ['Single-Thread', 'Multi-Thread', 'Multi-Process'],
+        datasets: [{
+          label: 'Throughput (pred/s)',
+          data: [t2.single_thread||0, t2.multi_thread||0, t2.multi_process||0],
+          backgroundColor: [RC.green+'cc', RC.blue+'cc', RC.purple+'cc'],
+          borderRadius: 4
+        }]
+      },
+      options: { ...rOpts, plugins: { ...rOpts.plugins, legend: { display: false } } }
+    });
+
+    // Batch scaling line chart
+    const bs = bm.batch_scaling || {};
+    const bsLabels = Object.keys(bs).sort((a,b) => +a - +b);
+    new Chart(document.getElementById('chartBatchScale'), {
+      type: 'line',
+      data: {
+        labels: bsLabels,
+        datasets: [{
+          label: 'Throughput (samples/s)',
+          data: bsLabels.map(k => bs[k]),
+          borderColor: RC.cyan, backgroundColor: RC.cyan+'22',
+          fill: true, tension: .3, pointRadius: 3, borderWidth: 2
+        }]
+      },
+      options: rOpts
+    });
+
+    // Scalability chart
+    const sc = bm.scalability || {};
+    const mtSc = sc.multi_thread || {};
+    const mpSc = sc.multi_process || {};
+    const wLabels = [...new Set([...Object.keys(mtSc), ...Object.keys(mpSc)])].sort((a,b)=>+a - +b);
+    new Chart(document.getElementById('chartScalability'), {
+      type: 'bar',
+      data: {
+        labels: wLabels.map(w => w + ' workers'),
+        datasets: [
+          { label: 'MT', data: wLabels.map(w => mtSc[w]||0), backgroundColor: RC.blue+'aa', borderRadius: 3 },
+          { label: 'MP', data: wLabels.map(w => mpSc[w]||0), backgroundColor: RC.purple+'aa', borderRadius: 3 }
+        ]
+      },
+      options: rOpts
+    });
+
+    // Latency comparison grouped bar
+    const lat = bm.latency || {};
+    new Chart(document.getElementById('chartLatency'), {
+      type: 'bar',
+      data: {
+        labels: ['Avg', 'P50', 'P95', 'P99'],
+        datasets: [
+          { label: 'ST', data: [lat.st_avg||0, lat.st_p50||0, lat.st_p95||0, lat.st_p99||0], backgroundColor: RC.green+'aa', borderRadius: 3 },
+          { label: 'MT', data: [lat.mt_avg||0, lat.mt_p50||0, lat.mt_p95||0, lat.mt_p99||0], backgroundColor: RC.blue+'aa', borderRadius: 3 },
+          { label: 'MP', data: [lat.mp_avg||0, lat.mp_p50||0, lat.mp_p95||0, lat.mp_p99||0], backgroundColor: RC.purple+'aa', borderRadius: 3 }
+        ]
+      },
+      options: rOpts
+    });
+
+    // CPU vs GPU
+    const cg = bm.cpu_gpu || {};
+    const cgLabels = Object.keys(cg.cpu||{}).sort((a,b)=>+a - +b);
+    new Chart(document.getElementById('chartCpuGpu'), {
+      type: 'bar',
+      data: {
+        labels: cgLabels.map(b => 'Batch ' + b),
+        datasets: [
+          { label: 'CPU', data: cgLabels.map(b => (cg.cpu||{})[b]||0), backgroundColor: RC.orange+'aa', borderRadius: 3 },
+          { label: 'GPU', data: cgLabels.map(b => (cg.gpu||{})[b]||0), backgroundColor: RC.cyan+'aa', borderRadius: 3 }
+        ]
+      },
+      options: rOpts
+    });
+  })
+  .catch(err => console.warn('Benchmark data not available:', err));
 </script>
 </body>
 </html>

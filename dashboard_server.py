@@ -413,6 +413,72 @@ def api_benchmark():
     return jsonify({'error': 'No benchmark results. Run research_benchmark.py first.'}), 404
 
 
+@app.route('/api/benchmark/summary')
+def api_benchmark_summary():
+    """Compact benchmark summary for the main monitoring dashboard."""
+    path = os.path.join(config.RESULTS_DIR, "research_benchmark.json")
+    if not os.path.exists(path):
+        return jsonify({'error': 'No benchmark results'}), 404
+    with open(path, encoding='utf-8') as f:
+        d = json.load(f)
+
+    # Pipeline comparison (Test 2)
+    t2 = d.get('test2_pipeline_comparison', {})
+    pipeline = {}
+    for mode in ('single_thread', 'multi_thread', 'multi_process'):
+        pipeline[mode] = round(t2.get(mode, {}).get('throughput', 0))
+
+    # Latency comparison (Test 2)
+    st = t2.get('single_thread', {})
+    mt = t2.get('multi_thread', {})
+    mp = t2.get('multi_process', {})
+    latency = {
+        'st_avg': round(st.get('avg_latency_ms', 0), 2),
+        'st_p50': round(st.get('p50_latency_ms', 0), 2),
+        'st_p95': round(st.get('p95_latency_ms', 0), 2),
+        'st_p99': round(st.get('p99_latency_ms', 0), 2),
+        'mt_avg': round(mt.get('avg_latency_ms', 0), 2),
+        'mt_p50': round(mt.get('p50_latency_ms', 0), 2),
+        'mt_p95': round(mt.get('p95_latency_ms', 0), 2),
+        'mt_p99': round(mt.get('p99_latency_ms', 0), 2),
+        'mp_avg': round(mp.get('avg_latency_ms', 0), 2),
+        'mp_p50': round(mp.get('p50_latency_ms', 0), 2),
+        'mp_p95': round(mp.get('p95_latency_ms', 0), 2),
+        'mp_p99': round(mp.get('p99_latency_ms', 0), 2),
+    }
+
+    # Batch scaling (Test 1)
+    batch_scaling = {}
+    for bs, val in d.get('test1_inference_batch', {}).items():
+        batch_scaling[bs] = round(val.get('throughput_mean', val.get('throughput', 0)))
+
+    # Max batch throughput
+    max_bt = max((v.get('throughput_mean', v.get('throughput', 0)) for v in d.get('test1_inference_batch', {}).values()), default=0)
+
+    # Scalability (Test 5)
+    t5 = d.get('test5_scalability', {})
+    scalability = {'multi_thread': {}, 'multi_process': {}}
+    for mode_key in ('multi_thread', 'multi_process'):
+        for nw, val in t5.get(mode_key, {}).items():
+            scalability[mode_key][nw] = round(val.get('throughput', 0))
+
+    # CPU vs GPU (Test 6)
+    t6 = d.get('test6_cpu_gpu', {})
+    cpu_gpu = {'cpu': {}, 'gpu': {}}
+    for dev in ('cpu', 'gpu'):
+        for bs, val in t6.get(dev, {}).items():
+            cpu_gpu[dev][bs] = round(val.get('throughput', 0))
+
+    return jsonify({
+        'pipeline': pipeline,
+        'latency': latency,
+        'batch_scaling': batch_scaling,
+        'max_batch_throughput': round(max_bt),
+        'scalability': scalability,
+        'cpu_gpu': cpu_gpu,
+    })
+
+
 @app.route('/api/alert/<int:idx>')
 def api_alert_detail(idx):
     """Layer 5: flow detail for a specific alert."""

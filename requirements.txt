@@ -1,0 +1,11 @@
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+joblib>=1.1.0
+xgboost>=2.0.0
+
+# GPU support (RTX 3070 Ti)
+# Cài PyTorch với CUDA 12.x:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+# Hoặc CUDA 11.8:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu118

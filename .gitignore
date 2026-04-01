@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs & results (optional – bỏ comment nếu muốn track)
+# logs/
+# results/
+
+# Trained models (lớn, có thể bỏ qua)
+models/*.joblib
+models/*.pt
+
+# Data (thường không commit CSV lớn)
+# data/dataset.csv
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

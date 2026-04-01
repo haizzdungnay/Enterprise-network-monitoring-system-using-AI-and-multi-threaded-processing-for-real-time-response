@@ -5,6 +5,45 @@ Format: `[FILE] Mô tả thay đổi`
 
 ---
 
+## [2026-04-03] — Research Benchmark & Evaluation Dashboard
+
+### Thay đổi chính trong ngày
+
+#### `research_benchmark.py` (mới)
+- **Thêm** bộ đánh giá nghiên cứu toàn diện 6 bài test:
+  - **Test 1**: Inference Batch Size Sweep (1→512) — throughput scaling ~247x
+  - **Test 2**: Pipeline Comparison ST vs MT vs MP — so sánh 3 chế độ xử lý
+  - **Test 3**: Queue Buffer Size Impact — tìm queue size tối ưu
+  - **Test 4**: Batch Size Pipeline — trade-off throughput vs latency
+  - **Test 5**: Scalability — đo hiệu quả khi tăng số workers (1/2/4)
+  - **Test 6**: CPU vs GPU Inference — so sánh XGBoost trên CPU vs CUDA
+- **Kết quả chính**: ST 16,092 pred/s, MT 14,559 pred/s, MP 5,722 pred/s
+- **Tự động sinh** HTML report với Chart.js charts cho mọi bài test
+
+#### `_mp_workers.py` (mới)
+- **Thêm** module lightweight cho multi-process workers
+- **Thiết kế** direct-split: pre-generate features → chia slice cho N workers
+- **Tránh** pipe buffer deadlock trên Windows bằng summary dict (~200 bytes)
+- **Không import** torch/config để giảm child process startup time
+
+#### `dashboard_static/evaluation.html` (mới/cập nhật)
+- **Sinh tự động** từ benchmark với 12+ biểu đồ Chart.js
+- **Hiển thị** hardware info, model metrics, training results
+- **Responsive** dark theme matching SOC dashboard
+
+#### `dashboard_server.py` (cập nhật)
+- **Thêm** route `/evaluation` — trang đánh giá nghiên cứu
+- **Thêm** API `/api/benchmark` — chạy benchmark từ dashboard
+
+#### `config.py` + `ai_model.py` (cập nhật)
+- **Sửa** CUDA detection robustness: thêm `device_count() > 0` guard
+- **Sửa** exception handling cho GPU initialization failures
+
+#### `results/research_benchmark.json` (mới)
+- **Lưu** toàn bộ kết quả benchmark dạng structured JSON
+
+---
+
 ## [2026-04-02] — Hoàn thiện Live SOC Dashboard 5 tầng + chạy thực tế
 
 ### Thay đổi chính trong ngày

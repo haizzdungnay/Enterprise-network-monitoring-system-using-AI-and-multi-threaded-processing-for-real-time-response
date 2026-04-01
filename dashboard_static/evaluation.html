@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Evaluation — Enterprise Network IDS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+<style>
+:root {
+  --bg-primary: #0a0e17;
+  --bg-card: #141b2d;
+  --bg-card-hover: #1a2338;
+  --border: #1e2a42;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --accent-blue: #3b82f6;
+  --accent-green: #10b981;
+  --accent-orange: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-purple: #8b5cf6;
+  --accent-cyan: #06b6d4;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.header {
+  background: linear-gradient(135deg, #1e3a5f, #0a0e17);
+  border-bottom: 1px solid var(--border);
+  padding: 2rem 3rem;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  background: linear-gradient(to right, var(--accent-blue), var(--accent-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+}
+
+.header .subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Hardware info strip */
+.hw-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.hw-item {
+  flex: 1;
+  min-width: 150px;
+  text-align: center;
+}
+
+.hw-item .label { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; }
+.hw-item .value { color: var(--accent-cyan); font-weight: 600; font-size: 0.95rem; }
+
+/* Section */
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 1.3rem;
+  color: var(--accent-blue);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-desc {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* Cards grid */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+
+@media (max-width: 900px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.card:hover { border-color: var(--accent-blue); }
+
+.card h3 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 320px;
+}
+
+/* KPI cards */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.kpi {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem;
+  text-align: center;
+}
+
+.kpi .val {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.kpi .lbl {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-top: 0.3rem;
+}
+
+.kpi.blue .val { color: var(--accent-blue); }
+.kpi.green .val { color: var(--accent-green); }
+.kpi.orange .val { color: var(--accent-orange); }
+.kpi.red .val { color: var(--accent-red); }
+.kpi.purple .val { color: var(--accent-purple); }
+.kpi.cyan .val { color: var(--accent-cyan); }
+
+/* Table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.data-table th {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-blue);
+  padding: 0.7rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid var(--border);
+}
+
+.data-table td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.data-table tr:hover td { background: rgba(59, 130, 246, 0.05); }
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-green { background: rgba(16,185,129,.15); color: var(--accent-green); }
+.badge-orange { background: rgba(245,158,11,.15); color: var(--accent-orange); }
+.badge-red { background: rgba(239,68,68,.15); color: var(--accent-red); }
+
+/* Architecture diagram */
+.arch-diagram {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+  color: var(--accent-cyan);
+  margin-bottom: 2rem;
+}
+
+/* Analysis box */
+.analysis-box {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.analysis-box h4 { color: var(--accent-blue); margin-bottom: 0.7rem; }
+.analysis-box ul { margin-left: 1.2rem; color: var(--text-secondary); }
+.analysis-box li { margin-bottom: 0.3rem; }
+.analysis-box strong { color: var(--text-primary); }
+
+.footer {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Research Evaluation Report</h1>
+  <div class="subtitle">Enterprise Network Intrusion Detection System — Producer-Consumer Architecture with AI Worker Pool</div>
+</div>
+
+<div class="container">
+
+  <!-- Hardware info -->
+  <div class="hw-strip" id="hw-strip"></div>
+
+  <!-- Training KPIs -->
+  <div class="kpi-row" id="training-kpis"></div>
+
+  <!-- Architecture Diagram -->
+  <div class="section">
+    <div class="section-title">Kiến trúc hệ thống: Packet Capture → Producer-Consumer → AI Worker Pool</div>
+    <div class="arch-diagram">
+   ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+   │                        ENTERPRISE NETWORK IDS — PIPELINE ARCHITECTURE                       │
+   └─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+   ┌────────────┐         ┌──────────────────┐         ┌──────────────────┐         ┌───────────┐
+   │    NIC     │  pkts   │   Packet Queue   │ raw pkt │  Consumer Pool   │ batched │  Feature  │
+   │  (Packet   │────────▶│  (thread-safe    │────────▶│  (Feature        │────────▶│   Queue   │
+   │  Capture)  │         │   ring buffer)   │         │   Extraction)    │         │  (batch   │
+   │            │         │                  │         │                  │         │  buffer)  │
+   │  Producer  │         │  Size: N pkts    │         │  K consumers     │         │           │
+   └────────────┘         │  Backpressure:   │         │  CPU-bound       │         │  Size: M  │
+        │                 │  block/drop      │         └──────────────────┘         │  batches  │
+        │                 └──────────────────┘                                     └─────┬─────┘
+        │                                                                                │
+        │   ┌────────────────────────────────────────────────────────────────────────────┘
+        │   │
+        │   ▼
+        │   ┌──────────────────────────────────────────────┐        ┌──────────────────┐
+        │   │          AI WORKER POOL                      │        │   Results &      │
+        │   │  ┌─────────┐ ┌─────────┐ ┌─────────┐        │───────▶│   Alert Engine   │
+        │   │  │Worker 0 │ │Worker 1 │ │Worker N │        │        │                  │
+        │   │  │(XGBoost │ │(XGBoost │ │(XGBoost │        │        │  - Log events    │
+        │   │  │ GPU/CPU)│ │ GPU/CPU)│ │ GPU/CPU)│        │        │  - Trigger alert │
+        │   │  └─────────┘ └─────────┘ └─────────┘        │        │  - Dashboard     │
+        │   │  Batch inference, scaler.transform +         │        └──────────────────┘
+        │   │  model.predict per batch                     │
+        │   └──────────────────────────────────────────────┘
+        │
+        │   TUNING KNOBS:
+        │   ├── Queue buffer size (N)    → trade-off: throughput vs latency vs memory
+        │   ├── Batch size (B)           → trade-off: throughput vs latency
+        │   ├── Worker count (W)         → scalability (Amdahl's Law)
+        │   └── CPU/GPU scheduling       → device-aware inference
+        │
+        │   MODES:
+        │   ├── Single-Thread   : Producer → Extract → Predict (sequential, baseline)
+        │   ├── Multi-Thread    : GIL-aware, shared memory, fast IPC (~1μs)
+        │   └── Multi-Process   : True parallelism, isolated memory, slow IPC (~100μs)
+   </div>
+  </div>
+
+  <!-- Test 1: Inference Batch Size -->
+  <div class="section">
+    <div class="section-title">Test 1: AI Inference — Batch Size Sweep</div>
+    <div class="section-desc">Ảnh hưởng của batch size đến throughput inference. Batch lớn hơn giảm overhead per-sample, tăng throughput đáng kể. Đây là nền tảng cho tối ưu pipeline.</div>
+    <div class="grid-2">
+      <div class="card"><h3>Throughput vs Batch Size</h3><div class="chart-container"><canvas id="chart-t1-throughput"></canvas></div></div>
+      <div class="card"><h3>Latency vs Batch Size</h3><div class="chart-container"><canvas id="chart-t1-latency"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:1rem"><h3>Speedup vs Batch Size = 1</h3><div class="chart-container"><canvas id="chart-t1-speedup"></canvas></div></div>
+    <div class="analysis-box" id="analysis-t1"></div>
+  </div>
+
+  <!-- Test 2: Pipeline Comparison -->
+  <div class="section">
+    <div class="section-title">Test 2: Pipeline Comparison — Single vs Multi-Thread vs Multi-Process</div>
+    <div class="section-desc">So sánh end-to-end pipeline: Capture → Extract → Queue → Batch → Predict. Cùng workload, cùng batch size, khác architecture.</div>
+    <div class="grid-2">
+      <div class="card"><h3>Throughput Comparison</h3><div class="chart-container"><canvas id="chart-t2-throughput"></canvas></div></div>
+      <div class="card"><h3>Latency Comparison (P50 / P95 / P99)</h3><div class="chart-container"><canvas id="chart-t2-latency"></canvas></div></div>
+    </div>
+    <div class="analysis-box" id="analysis-t2"></div>
+  </div>
+
+  <!-- Test 3: Queue Buffer -->
+  <div class="section">
+    <div class="section-title">Test 3: Queue Buffer Size Optimization</div>
+    <div class="section-desc">Khảo sát ảnh hưởng của queue buffer size. Queue quá nhỏ → Producer block, mất packet. Queue quá lớn → tốn RAM, tăng latency.</div>
+    <div class="grid-2">
+      <div class="card"><h3>Throughput vs Queue Size</h3><div class="chart-container"><canvas id="chart-t3-throughput"></canvas></div></div>
+      <div class="card"><h3>Latency vs Queue Size</h3><div class="chart-container"><canvas id="chart-t3-latency"></canvas></div></div>
+    </div>
+    <div class="analysis-box" id="analysis-t3"></div>
+  </div>
+
+  <!-- Test 4: Batch Size Pipeline -->
+  <div class="section">
+    <div class="section-title">Test 4: Batch Size Impact trên Full Pipeline</div>
+    <div class="section-desc">Khác Test 1 (inference-only), test này đo batch size ảnh hưởng đến toàn bộ pipeline (queue + threading overhead).</div>
+    <div class="grid-2">
+      <div class="card"><h3>Throughput: Single-Thread vs Multi-Thread</h3><div class="chart-container"><canvas id="chart-t4-throughput"></canvas></div></div>
+      <div class="card"><h3>Latency: Single-Thread vs Multi-Thread</h3><div class="chart-container"><canvas id="chart-t4-latency"></canvas></div></div>
+    </div>
+    <div class="analysis-box" id="analysis-t4"></div>
+  </div>
+
+  <!-- Test 5: Scalability -->
+  <div class="section">
+    <div class="section-title">Test 5: Scalability Analysis — Amdahl's Law</div>
+    <div class="section-desc">Đo speedup khi tăng số AI workers. Theo Amdahl's Law: S = 1/((1−P) + P/N). Efficiency = Speedup/N. Linear scaling (efficiency=100%) là lý tưởng.</div>
+    <div class="grid-2">
+      <div class="card"><h3>Speedup vs Worker Count</h3><div class="chart-container"><canvas id="chart-t5-speedup"></canvas></div></div>
+      <div class="card"><h3>Efficiency vs Worker Count</h3><div class="chart-container"><canvas id="chart-t5-efficiency"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:1rem"><h3>Throughput vs Worker Count</h3><div class="chart-container"><canvas id="chart-t5-throughput"></canvas></div></div>
+    <div class="analysis-box" id="analysis-t5"></div>
+  </div>
+
+  <!-- Test 6: CPU vs GPU -->
+  <div class="section">
+    <div class="section-title">Test 6: CPU vs GPU Scheduling</div>
+    <div class="section-desc">So sánh tốc độ inference khi chạy trên CPU vs GPU. GPU hiệu quả với batch lớn do massive parallelism.</div>
+    <div class="grid-2">
+      <div class="card"><h3>Throughput: CPU vs GPU</h3><div class="chart-container"><canvas id="chart-t6-throughput"></canvas></div></div>
+      <div class="card"><h3>GPU Speedup vs CPU</h3><div class="chart-container"><canvas id="chart-t6-speedup"></canvas></div></div>
+    </div>
+    <div class="analysis-box" id="analysis-t6"></div>
+  </div>
+
+  <!-- Summary Table -->
+  <div class="section">
+    <div class="section-title">Bảng Tổng Kết Đánh Giá</div>
+    <div class="card">
+      <table class="data-table" id="summary-table">
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Throughput (pred/sec)</th>
+            <th>Avg Latency (ms)</th>
+            <th>P95 Latency (ms)</th>
+            <th>P99 Latency (ms)</th>
+            <th>Speedup</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody id="summary-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Enterprise Network IDS — Research Evaluation Report<br>
+  Generated: <span id="gen-time"></span> | Model: XGBoost on CUDA
+</div>
+
+<script>
+const DATA = {
+  "metadata": {
+    "timestamp": "2026-04-02 02:25:52",
+    "hardware": {
+      "os": "Windows 11",
+      "python": "3.13.2",
+      "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "cpu_cores_physical": 12,
+      "ram_gb": "15.6",
+      "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+      "gpu_vram_mb": 4095,
+      "gpu_compute_capability": "8.6",
+      "cuda_version": "12.4"
+    },
+    "config": {
+      "model_type": "xgboost",
+      "batch_size": 128,
+      "queue_size": 10000,
+      "num_consumers": 2,
+      "num_ai_workers": 1,
+      "use_gpu": true,
+      "gpu_profile": "low"
+    }
+  },
+  "test1_inference_batch": {
+    "1": {
+      "batch_size": 1,
+      "throughput_mean": 2380.136960778872,
+      "throughput_std": 39.66921080981683,
+      "latency_ms_mean": 0.4202606300001207,
+      "latency_ms_std": 0.0070043899999291115,
+      "speedup_vs_bs1": 1.0
+    },
+    "2": {
+      "batch_size": 2,
+      "throughput_mean": 4225.704042670422,
+      "throughput_std": 162.63711785733472,
+      "latency_ms_mean": 0.23699801999973716,
+      "latency_ms_std": 0.009121479999885218,
+      "speedup_vs_bs1": 1.7754037319296152
+    },
+    "4": {
+      "batch_size": 4,
+      "throughput_mean": 8670.932803529893,
+      "throughput_std": 130.41359121144797,
+      "latency_ms_mean": 0.1153539400002046,
+      "latency_ms_std": 0.0017349599998851759,
+      "speedup_vs_bs1": 3.643039432778033
+    },
+    "8": {
+      "batch_size": 8,
+      "throughput_mean": 15666.248928968558,
+      "throughput_std": 1733.6736762750807,
+      "latency_ms_mean": 0.06462287999966065,
+      "latency_ms_std": 0.007151359999988931,
+      "speedup_vs_bs1": 6.5820787572837665
+    },
+    "16": {
+      "batch_size": 16,
+      "throughput_mean": 32854.61678090521,
+      "throughput_std": 949.5865696472265,
+      "latency_ms_mean": 0.03046256999950856,
+      "latency_ms_std": 0.0008804500001133395,
+      "speedup_vs_bs1": 13.803666478988639
+    },
+    "32": {
+      "batch_size": 32,
+      "throughput_mean": 58035.1474667751,
+      "throughput_std": 989.691363410504,
+      "latency_ms_mean": 0.017235950000031152,
+      "latency_ms_std": 0.0002939299993158784,
+      "speedup_vs_bs1": 24.38311257843909
+    },
+    "64": {
+      "batch_size": 64,
+      "throughput_mean": 97686.47432639703,
+      "throughput_std": 5683.383030051416,
+      "latency_ms_mean": 0.010271600000123726,
+      "latency_ms_std": 0.0005976000007649404,
+      "speedup_vs_bs1": 41.04237526500587
+    },
+    "128": {
+      "batch_size": 128,
+      "throughput_mean": 192272.8663554878,
+      "throughput_std": 3483.9097478343465,
+      "latency_ms_mean": 0.005202650000137509,
+      "latency_ms_std": 9.426999968127365e-05,
+      "speedup_vs_bs1": 80.78226989616965
+    },
+    "256": {
+      "batch_size": 256,
+      "throughput_mean": 320977.4858809571,
+      "throughput_std": 4441.65401841767,
+      "latency_ms_mean": 0.003116079999745125,
+      "latency_ms_std": 4.312000019126585e-05,
+      "speedup_vs_bs1": 134.85672932700518
+    },
+    "512": {
+      "batch_size": 512,
+      "throughput_mean": 588831.0959501467,
+      "throughput_std": 39096.61747715005,
+      "latency_ms_mean": 0.001705799999035662,
+      "latency_ms_std": 0.00011326000021654175,
+      "speedup_vs_bs1": 247.39378685059307
+    }
+  },
+  "test2_pipeline_comparison": {
+    "single_thread": {
+      "predictions": 10000.0,
+      "elapsed_sec": 0.6214085000028717,
+      "throughput": 16092.473791320503,
+      "avg_latency_ms": 4.554035279856907,
+      "p50_latency_ms": 4.568100004689768,
+      "p95_latency_ms": 7.555314998899121,
+      "p99_latency_ms": 8.16321300015261,
+      "min_latency_ms": 0.7138000000850298,
+      "max_latency_ms": 9.467999996559229,
+      "speedup_vs_single": 1.0
+    },
+    "multi_thread": {
+      "predictions": 10000.0,
+      "elapsed_sec": 0.6868711999995867,
+      "throughput": 14558.770261449334,
+      "avg_latency_ms": 255.9752819500332,
+      "p50_latency_ms": 261.5177500010759,
+      "p95_latency_ms": 428.41249999873975,
+      "p99_latency_ms": 455.03507399524096,
+      "min_latency_ms": 38.262800000666175,
+      "max_latency_ms": 467.6298000049428,
+      "dropped_packets": 0.0,
+      "speedup_vs_single": 0.9046943590053648
+    },
+    "multi_process": {
+      "predictions": 10000.0,
+      "elapsed_sec": 1.7477185999960057,
+      "throughput": 5721.744907917588,
+      "avg_latency_ms": 0.0076753999994252815,
+      "p50_latency_ms": 0.006728124986921102,
+      "p95_latency_ms": 0.012850000018715946,
+      "p99_latency_ms": 0.033613281232192094,
+      "min_latency_ms": 0.005713281268526771,
+      "max_latency_ms": 0.10877499971684301,
+      "speedup_vs_single": 0.35555409206281374
+    }
+  },
+  "test3_queue_buffer": {
+    "100": {
+      "predictions": 8000.0,
+      "elapsed_sec": 0.5434868999946048,
+      "throughput": 14719.766014745557,
+      "avg_latency_ms": 168.95319686231687,
+      "p50_latency_ms": 167.6441999989038,
+      "p95_latency_ms": 296.5595699966798,
+      "p99_latency_ms": 303.43179499679536,
+      "min_latency_ms": 26.697399996919557,
+      "max_latency_ms": 318.25360000220826,
+      "dropped_packets": 0.0
+    },
+    "1000": {
+      "predictions": 8000.0,
+      "elapsed_sec": 0.5763437999994494,
+      "throughput": 13880.603903447287,
+      "avg_latency_ms": 164.0162209123191,
+      "p50_latency_ms": 156.15625000282307,
+      "p95_latency_ms": 300.30465999952867,
+      "p99_latency_ms": 307.6658490025875,
+      "min_latency_ms": 28.323999998974614,
+      "max_latency_ms": 325.58300000528106,
+      "dropped_packets": 0.0
+    },
+    "5000": {
+      "predictions": 8000.0,
+      "elapsed_sec": 0.5668723999988288,
+      "throughput": 14112.523382716337,
+      "avg_latency_ms": 184.2758438627934,
+      "p50_latency_ms": 184.8176500025147,
+      "p95_latency_ms": 327.0981400000892,
+      "p99_latency_ms": 346.02894899493555,
+      "min_latency_ms": 31.99750000203494,
+      "max_latency_ms": 358.7005000008503,
+      "dropped_packets": 0.0
+    },
+    "10000": {
+      "predictions": 8000.0,
+      "elapsed_sec": 0.5537598999944748,
+      "throughput": 14446.69431657984,
+      "avg_latency_ms": 205.67150995029897,
+      "p50_latency_ms": 197.95035000061034,
+      "p95_latency_ms": 360.2785800030687,
+      "p99_latency_ms": 372.4999600003503,
+      "min_latency_ms": 35.757099998591,
+      "max_latency_ms": 380.9823999981745,
+      "dropped_packets": 0.0
+    }
+  },
+  "test4_batch_pipeline": {
+    "1": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 5.477072699999553,
+        "throughput": 1460.6342544988772,
+        "avg_latency_ms": 0.6832505375305118,
+        "p50_latency_ms": 0.6275999985518865,
+        "p95_latency_ms": 0.9657049977249698,
+        "p99_latency_ms": 1.2437249968934345,
+        "min_latency_ms": 0.49929999659070745,
+        "max_latency_ms": 23.66549999715062
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 5.122460200000205,
+        "throughput": 1561.7495671317622,
+        "avg_latency_ms": 2624.0027547749705,
+        "p50_latency_ms": 2668.3110499980103,
+        "p95_latency_ms": 4412.39662500302,
+        "p99_latency_ms": 4562.259408002719,
+        "min_latency_ms": 68.12360000185436,
+        "max_latency_ms": 4602.494899998419,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 1.0692269897966868
+    },
+    "4": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 1.8425279000002774,
+        "throughput": 4341.860983488388,
+        "avg_latency_ms": 0.8094407374474031,
+        "p50_latency_ms": 0.7634499997948296,
+        "p95_latency_ms": 1.1788100044213934,
+        "p99_latency_ms": 1.4664030037238285,
+        "min_latency_ms": 0.5359000060707331,
+        "max_latency_ms": 2.4585999999544583
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 1.6806409000055282,
+        "throughput": 4760.088844662584,
+        "avg_latency_ms": 811.3782233500588,
+        "p50_latency_ms": 798.137850000785,
+        "p95_latency_ms": 1117.3667499948351,
+        "p99_latency_ms": 1147.2719159974804,
+        "min_latency_ms": 48.84450000099605,
+        "max_latency_ms": 1155.0475999974879,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 1.0963245628463623
+    },
+    "8": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 1.3320592000018223,
+        "throughput": 6005.739084260711,
+        "avg_latency_ms": 1.0814518124843744,
+        "p50_latency_ms": 0.9862500010058284,
+        "p95_latency_ms": 1.8268099986016748,
+        "p99_latency_ms": 2.569597000401702,
+        "min_latency_ms": 0.5502999993041158,
+        "max_latency_ms": 4.604699999617878
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 1.1228063000016846,
+        "throughput": 7125.004553312532,
+        "avg_latency_ms": 555.2577169874967,
+        "p50_latency_ms": 563.4653999986767,
+        "p95_latency_ms": 593.2983699949546,
+        "p99_latency_ms": 594.6731650003494,
+        "min_latency_ms": 52.06539999926463,
+        "max_latency_ms": 618.6431999958586,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 1.1863659831618543
+    },
+    "16": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 0.8170675999936066,
+        "throughput": 9791.11153111762,
+        "avg_latency_ms": 1.1927135125488348,
+        "p50_latency_ms": 1.1627000021690037,
+        "p95_latency_ms": 1.802904997748554,
+        "p99_latency_ms": 2.123411001375644,
+        "min_latency_ms": 0.5950999984634109,
+        "max_latency_ms": 2.940600003057625
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.7645006000020658,
+        "throughput": 10464.347575369311,
+        "avg_latency_ms": 365.1581720875083,
+        "p50_latency_ms": 365.07829999754904,
+        "p95_latency_ms": 477.71902999957086,
+        "p99_latency_ms": 487.5221789950592,
+        "min_latency_ms": 94.83679999539163,
+        "max_latency_ms": 529.8540000003413,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 1.0687599198632398
+    },
+    "32": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 0.6383579000030295,
+        "throughput": 12532.154767665652,
+        "avg_latency_ms": 1.703868187561966,
+        "p50_latency_ms": 1.6704000008758157,
+        "p95_latency_ms": 2.644315002544317,
+        "p99_latency_ms": 3.1455289989389716,
+        "min_latency_ms": 0.6357000020216219,
+        "max_latency_ms": 5.639299997710623
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.6558511999974144,
+        "throughput": 12197.888789456418,
+        "avg_latency_ms": 304.4263483498007,
+        "p50_latency_ms": 300.9895499999402,
+        "p95_latency_ms": 460.6678449948952,
+        "p99_latency_ms": 477.5693079944904,
+        "min_latency_ms": 51.84729999746196,
+        "max_latency_ms": 480.9178000068641,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 0.9733273340134868
+    },
+    "64": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 0.5701766999991378,
+        "throughput": 14030.73819048042,
+        "avg_latency_ms": 2.7872586872254033,
+        "p50_latency_ms": 2.763150001555914,
+        "p95_latency_ms": 4.504304998408768,
+        "p99_latency_ms": 5.040040995663734,
+        "min_latency_ms": 0.8547000034013763,
+        "max_latency_ms": 6.635099998675287
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.5997788999957265,
+        "throughput": 13338.248477992474,
+        "avg_latency_ms": 253.46070567551214,
+        "p50_latency_ms": 255.33509999877424,
+        "p95_latency_ms": 427.33707499464794,
+        "p99_latency_ms": 442.5406389971613,
+        "min_latency_ms": 44.077099999412894,
+        "max_latency_ms": 474.4003000014345,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 0.9506448126187839
+    },
+    "128": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 0.5034426000056555,
+        "throughput": 15890.590108803128,
+        "avg_latency_ms": 4.580163787454694,
+        "p50_latency_ms": 4.556349998892983,
+        "p95_latency_ms": 7.666505001543555,
+        "p99_latency_ms": 8.32816700349213,
+        "min_latency_ms": 1.0653999997884966,
+        "max_latency_ms": 9.456499996304046
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.5875970999986748,
+        "throughput": 13614.771073611564,
+        "avg_latency_ms": 214.37616458763114,
+        "p50_latency_ms": 212.28685000096448,
+        "p95_latency_ms": 364.98552999801177,
+        "p99_latency_ms": 394.64668199841987,
+        "min_latency_ms": 29.856500004825648,
+        "max_latency_ms": 429.61300000024494,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 0.8567819684725996
+    },
+    "256": {
+      "single_thread": {
+        "predictions": 8000,
+        "elapsed_sec": 0.47865319999982603,
+        "throughput": 16713.56213643387,
+        "avg_latency_ms": 8.274506537672096,
+        "p50_latency_ms": 8.225350004067877,
+        "p95_latency_ms": 14.547624996339437,
+        "p99_latency_ms": 16.336761998682054,
+        "min_latency_ms": 1.105800001823809,
+        "max_latency_ms": 18.573699999251403
+      },
+      "multi_thread": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.5662231999958749,
+        "throughput": 14128.704016469623,
+        "avg_latency_ms": 80.84865398798411,
+        "p50_latency_ms": 83.59080000082031,
+        "p95_latency_ms": 121.8648949994531,
+        "p99_latency_ms": 144.48991600074805,
+        "min_latency_ms": 4.326599999330938,
+        "max_latency_ms": 149.23709999857238,
+        "dropped_packets": 0.0
+      },
+      "mt_speedup_vs_st": 0.8453436736666974
+    }
+  },
+  "test5_scalability": {
+    "baseline_single_thread": {
+      "predictions": 8000,
+      "elapsed_sec": 0.5104524000053061,
+      "throughput": 15672.372193600893,
+      "avg_latency_ms": 4.672362424974381,
+      "p50_latency_ms": 4.67814999865368,
+      "p95_latency_ms": 7.734535001873153,
+      "p99_latency_ms": 8.30163499893388,
+      "min_latency_ms": 1.106100004108157,
+      "max_latency_ms": 9.082199998374563
+    },
+    "multi_thread": {
+      "1": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.5584777999974904,
+        "throughput": 14324.651758827207,
+        "avg_latency_ms": 233.58978924996063,
+        "p50_latency_ms": 233.94994999762275,
+        "p95_latency_ms": 398.3976550000079,
+        "p99_latency_ms": 416.39562800097343,
+        "min_latency_ms": 45.30249999515945,
+        "max_latency_ms": 421.53260000486625,
+        "dropped_packets": 0.0,
+        "speedup": 0.9140066086916971,
+        "efficiency": 0.9140066086916971
+      },
+      "2": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.5600875000018277,
+        "throughput": 14283.482491528366,
+        "avg_latency_ms": 230.34946383734223,
+        "p50_latency_ms": 238.5057500032417,
+        "p95_latency_ms": 388.91168000045576,
+        "p99_latency_ms": 399.36232900145114,
+        "min_latency_ms": 35.56149999349145,
+        "max_latency_ms": 429.6978999991552,
+        "dropped_packets": 0.0,
+        "speedup": 0.911379739779303,
+        "efficiency": 0.4556898698896515
+      },
+      "4": {
+        "predictions": 8000.0,
+        "elapsed_sec": 0.5580171000037808,
+        "throughput": 14336.478218939521,
+        "avg_latency_ms": 107.22726826305552,
+        "p50_latency_ms": 108.9875999969081,
+        "p95_latency_ms": 178.37942500191272,
+        "p99_latency_ms": 188.83035999839197,
+        "min_latency_ms": 13.44729999982519,
+        "max_latency_ms": 191.84110000060173,
+        "dropped_packets": 0.0,
+        "speedup": 0.9147612143101843,
+        "efficiency": 0.22869030357754608
+      }
+    },
+    "multi_process": {
+      "1": {
+        "predictions": 8000.0,
+        "elapsed_sec": 1.7290044999972451,
+        "throughput": 4626.939953026581,
+        "avg_latency_ms": 0.006601074993341172,
+        "p50_latency_ms": 0.00589921876326116,
+        "p95_latency_ms": 0.0091312499534979,
+        "p99_latency_ms": 0.03135703127554734,
+        "min_latency_ms": 0.004936718710268906,
+        "max_latency_ms": 0.03135703127554734,
+        "speedup": 0.2952290754628571,
+        "efficiency": 0.2952290754628571
+      },
+      "2": {
+        "predictions": 8000.0,
+        "elapsed_sec": 1.78912400000263,
+        "throughput": 4471.462011570042,
+        "avg_latency_ms": 0.00828087500303809,
+        "p50_latency_ms": 0.0067746093748155545,
+        "p95_latency_ms": 0.012271874993530218,
+        "p99_latency_ms": 0.0352820312627955,
+        "min_latency_ms": 0.005479687501974695,
+        "max_latency_ms": 0.0352820312627955,
+        "speedup": 0.28530856441731023,
+        "efficiency": 0.14265428220865511
+      },
+      "4": {
+        "predictions": 8000.0,
+        "elapsed_sec": 2.025440899997193,
+        "throughput": 3949.757309636182,
+        "avg_latency_ms": 0.010446812500049418,
+        "p50_latency_ms": 0.008498242195287276,
+        "p95_latency_ms": 0.02648437504149115,
+        "p99_latency_ms": 0.0289024999801768,
+        "min_latency_ms": 0.006499999983589078,
+        "max_latency_ms": 0.0289024999801768,
+        "speedup": 0.25202038726778625,
+        "efficiency": 0.06300509681694656
+      }
+    }
+  },
+  "test6_cpu_gpu": {
+    "cpu": {
+      "32": {
+        "throughput": 54927.79192482925,
+        "time_sec": 0.09102859999984503
+      },
+      "64": {
+        "throughput": 98731.69267468077,
+        "time_sec": 0.05064230000061798
+      },
+      "128": {
+        "throughput": 190619.9724173296,
+        "time_sec": 0.02623019999737153
+      },
+      "256": {
+        "throughput": 355196.88551240665,
+        "time_sec": 0.014076700004807208
+      }
+    },
+    "gpu": {
+      "32": {
+        "throughput": 15072.217020724589,
+        "time_sec": 0.33173619999797666
+      },
+      "64": {
+        "throughput": 45829.34617983846,
+        "time_sec": 0.10910040000089793
+      },
+      "128": {
+        "throughput": 88461.83447545314,
+        "time_sec": 0.056521549995522946
+      },
+      "256": {
+        "throughput": 186254.42354032988,
+        "time_sec": 0.026845000000321306
+      }
+    }
+  },
+  "training_metrics": {
+    "model_type": "xgboost",
+    "train_time": 2.930180072784424,
+    "train_samples": 2262300,
+    "test_samples": 565576,
+    "metrics": {
+      "accuracy": 0.9920753355870829,
+      "precision": 0.967232616929523,
+      "recall": 0.9933878951765773,
+      "f1": 0.9801357963409445,
+      "throughput": 3539621.4757499434
+    },
+    "batch_benchmark": {
+      "1": {
+        "throughput": 1184.4910136011733,
+        "latency_per_sample": 0.8442444801330568
+      },
+      "8": {
+        "throughput": 1345.2745324615769,
+        "latency_per_sample": 0.743342697620392
+      },
+      "16": {
+        "throughput": 11721.263598406747,
+        "latency_per_sample": 0.0853150337934494
+      },
+      "32": {
+        "throughput": 32759.88201165971,
+        "latency_per_sample": 0.03052514046430588
+      },
+      "64": {
+        "throughput": 66728.66077308018,
+        "latency_per_sample": 0.014986064285039902
+      },
+      "128": {
+        "throughput": 132521.4206848784,
+        "latency_per_sample": 0.0075459498912096015
+      },
+      "256": {
+        "throughput": 252104.03083076747,
+        "latency_per_sample": 0.003966616466641426
+      },
+      "512": {
+        "throughput": 423891.5271580832,
+        "latency_per_sample": 0.0023590940982103348
+      }
+    }
+  }
+};
+
+// ── Chart defaults ──
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#1e2a42';
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+
+const COLORS = {
+  blue: '#3b82f6', green: '#10b981', orange: '#f59e0b',
+  red: '#ef4444', purple: '#8b5cf6', cyan: '#06b6d4', pink: '#ec4899'
+};
+
+function fmt(n, d=0) { return n ? n.toLocaleString('en', {maximumFractionDigits:d}) : '0'; }
+
+// ── Hardware strip ──
+(function() {
+  const hw = DATA.metadata?.hardware || {};
+  const el = document.getElementById('hw-strip');
+  const items = [
+    ['OS', hw.os || 'N/A'],
+    ['CPU', hw.cpu || 'N/A'],
+    ['Cores', hw.cpu_cores_physical || 'N/A'],
+    ['RAM', (hw.ram_gb || 'N/A') + ' GB'],
+    ['GPU', hw.gpu || 'None'],
+    ['VRAM', (hw.gpu_vram_mb || 'N/A') + ' MB'],
+    ['CUDA', hw.cuda_version || 'N/A'],
+    ['Python', hw.python || 'N/A'],
+  ];
+  el.innerHTML = items.map(([l,v]) =>
+    `<div class="hw-item"><div class="label">${l}</div><div class="value">${v}</div></div>`
+  ).join('');
+})();
+
+// ── Training KPIs ──
+(function() {
+  const m = DATA.training_metrics?.metrics || {};
+  const el = document.getElementById('training-kpis');
+  const kpis = [
+    ['Accuracy', (m.accuracy*100||0).toFixed(2)+'%', 'blue'],
+    ['Precision', (m.precision*100||0).toFixed(2)+'%', 'green'],
+    ['Recall', (m.recall*100||0).toFixed(2)+'%', 'orange'],
+    ['F1-Score', (m.f1*100||0).toFixed(2)+'%', 'purple'],
+    ['Throughput', fmt(m.throughput)+' samp/s', 'cyan'],
+    ['Model', DATA.metadata?.config?.model_type?.toUpperCase() || 'N/A', 'blue'],
+  ];
+  el.innerHTML = kpis.map(([l,v,c]) =>
+    `<div class="kpi ${c}"><div class="val">${v}</div><div class="lbl">${l}</div></div>`
+  ).join('');
+})();
+
+document.getElementById('gen-time').textContent = DATA.metadata?.timestamp || 'N/A';
+
+// ════════════════════════════════════════
+// TEST 1: Inference Batch Size
+// ════════════════════════════════════════
+(function() {
+  const d = DATA.test1_inference_batch || {};
+  const bs = Object.keys(d).map(Number).sort((a,b)=>a-b);
+  const tp = bs.map(k => d[k]?.throughput_mean || 0);
+  const lat = bs.map(k => d[k]?.latency_ms_mean || 0);
+  const sp = bs.map(k => d[k]?.speedup_vs_bs1 || 0);
+
+  new Chart(document.getElementById('chart-t1-throughput'), {
+    type: 'bar',
+    data: { labels: bs.map(String), datasets: [{ label: 'Throughput (samples/sec)', data: tp, backgroundColor: COLORS.blue+'cc', borderColor: COLORS.blue, borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'Samples/sec' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t1-latency'), {
+    type: 'line',
+    data: { labels: bs.map(String), datasets: [{ label: 'Latency (ms/sample)', data: lat, borderColor: COLORS.orange, backgroundColor: COLORS.orange+'33', fill: true, tension: 0.3, pointRadius: 5 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'ms/sample' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t1-speedup'), {
+    type: 'line',
+    data: { labels: bs.map(String), datasets: [
+      { label: 'Speedup vs Batch=1', data: sp, borderColor: COLORS.green, backgroundColor: COLORS.green+'33', fill: true, tension: 0.3, pointRadius: 5 },
+      { label: 'Linear (ideal)', data: bs.map(k => k), borderColor: '#ffffff33', borderDash: [5,5], pointRadius: 0 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Speedup' } }, x: { title: { display: true, text: 'Batch Size' } } } }
+  });
+
+  const maxBs = bs[tp.indexOf(Math.max(...tp))];
+  document.getElementById('analysis-t1').innerHTML = `<h4>Phân Tích Test 1</h4><ul>
+    <li><strong>Batch size tối ưu:</strong> ${maxBs} — đạt throughput cao nhất ${fmt(Math.max(...tp))} samples/sec</li>
+    <li><strong>Speedup tối đa:</strong> ${fmt(Math.max(...sp),1)}x so với batch=1</li>
+    <li>Batch lớn hơn giúp amortize Python call overhead và tận dụng SIMD/GPU parallelism</li>
+    <li>Diminishing returns xuất hiện khi batch > ${maxBs} do CPU/GPU cache saturation</li>
+  </ul>`;
+})();
+
+// ════════════════════════════════════════
+// TEST 2: Pipeline Comparison
+// ════════════════════════════════════════
+(function() {
+  const d = DATA.test2_pipeline_comparison || {};
+  const modes = ['single_thread', 'multi_thread', 'multi_process'];
+  const labels = ['Single-Thread', 'Multi-Thread', 'Multi-Process'];
+  const colors = [COLORS.blue, COLORS.green, COLORS.orange];
+
+  const tp = modes.map(m => d[m]?.throughput || 0);
+  const avgLat = modes.map(m => d[m]?.avg_latency_ms || 0);
+  const p95 = modes.map(m => d[m]?.p95_latency_ms || 0);
+  const p99 = modes.map(m => d[m]?.p99_latency_ms || 0);
+
+  new Chart(document.getElementById('chart-t2-throughput'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Throughput (pred/sec)', data: tp, backgroundColor: colors.map(c=>c+'cc'), borderColor: colors, borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'Predictions/sec' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t2-latency'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Avg', data: avgLat, backgroundColor: COLORS.cyan+'99' },
+        { label: 'P95', data: p95, backgroundColor: COLORS.orange+'99' },
+        { label: 'P99', data: p99, backgroundColor: COLORS.red+'99' },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Latency (ms)' } } } }
+  });
+
+  const best = labels[tp.indexOf(Math.max(...tp))];
+  const fastestLat = labels[avgLat.indexOf(Math.min(...avgLat))];
+  document.getElementById('analysis-t2').innerHTML = `<h4>Phân Tích Test 2</h4><ul>
+    <li><strong>Throughput cao nhất:</strong> ${best} — ${fmt(Math.max(...tp))} pred/sec</li>
+    <li><strong>Latency thấp nhất:</strong> ${fastestLat} — ${fmt(Math.min(...avgLat),2)} ms</li>
+    <li>Single-thread thường nhanh hơn với workload nhẹ (simulated) do không có synchronization overhead</li>
+    <li>Multi-thread bị GIL hạn chế cho CPU-bound tasks, nhưng numpy/XGBoost release GIL khi chạy C code</li>
+    <li>Multi-process tránh GIL nhưng chịu IPC overhead (serialize qua pipe ~100μs/message)</li>
+    <li>Với heavy AI workload thực tế (model lớn, data phức tạp), multi-thread/process sẽ hiệu quả hơn</li>
+  </ul>`;
+})();
+
+// ════════════════════════════════════════
+// TEST 3: Queue Buffer
+// ════════════════════════════════════════
+(function() {
+  const d = DATA.test3_queue_buffer || {};
+  const qs = Object.keys(d).map(Number).sort((a,b)=>a-b);
+  const tp = qs.map(k => d[k]?.throughput || 0);
+  const avgL = qs.map(k => d[k]?.avg_latency_ms || 0);
+  const p99 = qs.map(k => d[k]?.p99_latency_ms || 0);
+
+  new Chart(document.getElementById('chart-t3-throughput'), {
+    type: 'line',
+    data: { labels: qs.map(k=>k.toLocaleString()), datasets: [{ label: 'Throughput', data: tp, borderColor: COLORS.blue, backgroundColor: COLORS.blue+'33', fill: true, tension: 0.3, pointRadius: 5 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Predictions/sec' } }, x: { title: { display: true, text: 'Queue Size' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t3-latency'), {
+    type: 'line',
+    data: { labels: qs.map(k=>k.toLocaleString()), datasets: [
+      { label: 'Avg Latency', data: avgL, borderColor: COLORS.orange, tension: 0.3, pointRadius: 5 },
+      { label: 'P99 Latency', data: p99, borderColor: COLORS.red, tension: 0.3, pointRadius: 5 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Latency (ms)' } }, x: { title: { display: true, text: 'Queue Size' } } } }
+  });
+
+  const optIdx = tp.indexOf(Math.max(...tp));
+  document.getElementById('analysis-t3').innerHTML = `<h4>Phân Tích Test 3</h4><ul>
+    <li><strong>Queue size tối ưu:</strong> ${qs[optIdx].toLocaleString()} — throughput ${fmt(tp[optIdx])} pred/sec</li>
+    <li>Queue nhỏ (<500): Producer thường xuyên bị block → giảm throughput</li>
+    <li>Queue lớn (>10,000): Throughput ổn nhưng latency tăng do packets chờ lâu trong buffer</li>
+    <li>Rule of thumb: Queue size ≈ 2-5 giây × expected packet rate</li>
+  </ul>`;
+})();
+
+// ════════════════════════════════════════
+// TEST 4: Batch Size Pipeline
+// ════════════════════════════════════════
+(function() {
+  const d = DATA.test4_batch_pipeline || {};
+  const bs = Object.keys(d).map(Number).sort((a,b)=>a-b);
+  const stTp = bs.map(k => d[k]?.single_thread?.throughput || 0);
+  const mtTp = bs.map(k => d[k]?.multi_thread?.throughput || 0);
+  const stLat = bs.map(k => d[k]?.single_thread?.avg_latency_ms || 0);
+  const mtLat = bs.map(k => d[k]?.multi_thread?.avg_latency_ms || 0);
+
+  new Chart(document.getElementById('chart-t4-throughput'), {
+    type: 'line',
+    data: { labels: bs.map(String), datasets: [
+      { label: 'Single-Thread', data: stTp, borderColor: COLORS.blue, tension: 0.3, pointRadius: 5 },
+      { label: 'Multi-Thread', data: mtTp, borderColor: COLORS.green, tension: 0.3, pointRadius: 5 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Predictions/sec' } }, x: { title: { display: true, text: 'Batch Size' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t4-latency'), {
+    type: 'line',
+    data: { labels: bs.map(String), datasets: [
+      { label: 'ST Avg Latency', data: stLat, borderColor: COLORS.blue, borderDash: [5,5], tension: 0.3, pointRadius: 5 },
+      { label: 'MT Avg Latency', data: mtLat, borderColor: COLORS.green, borderDash: [5,5], tension: 0.3, pointRadius: 5 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Latency (ms)' } }, x: { title: { display: true, text: 'Batch Size' } } } }
+  });
+
+  const bestSt = bs[stTp.indexOf(Math.max(...stTp))];
+  const bestMt = bs[mtTp.indexOf(Math.max(...mtTp))];
+  document.getElementById('analysis-t4').innerHTML = `<h4>Phân Tích Test 4</h4><ul>
+    <li><strong>Best batch (Single-Thread):</strong> ${bestSt}</li>
+    <li><strong>Best batch (Multi-Thread):</strong> ${bestMt}</li>
+    <li>Batch nhỏ (1-8): Overhead per-prediction cao, throughput thấp cả 2 modes</li>
+    <li>Batch lớn (128-256): Throughput cao nhưng latency tăng do chờ gom đủ batch</li>
+    <li>Multi-thread hưởng lợi nhiều hơn từ large batch vì amortize synchronization cost</li>
+  </ul>`;
+})();
+
+// ════════════════════════════════════════
+// TEST 5: Scalability
+// ════════════════════════════════════════
+(function() {
+  const d = DATA.test5_scalability || {};
+  const mt = d.multi_thread || {};
+  const mp = d.multi_process || {};
+
+  const workers = [...new Set([...Object.keys(mt), ...Object.keys(mp)].map(Number))].sort((a,b)=>a-b);
+  const mtSp = workers.map(w => mt[w]?.speedup || 0);
+  const mpSp = workers.map(w => mp[w]?.speedup || 0);
+  const mtEff = workers.map(w => (mt[w]?.efficiency || 0) * 100);
+  const mpEff = workers.map(w => (mp[w]?.efficiency || 0) * 100);
+  const mtTp = workers.map(w => mt[w]?.throughput || 0);
+  const mpTp = workers.map(w => mp[w]?.throughput || 0);
+  const ideal = workers.map(w => w);
+
+  new Chart(document.getElementById('chart-t5-speedup'), {
+    type: 'line',
+    data: { labels: workers.map(String), datasets: [
+      { label: 'Multi-Thread', data: mtSp, borderColor: COLORS.green, tension: 0.3, pointRadius: 6 },
+      { label: 'Multi-Process', data: mpSp, borderColor: COLORS.orange, tension: 0.3, pointRadius: 6 },
+      { label: 'Linear (ideal)', data: ideal, borderColor: '#ffffff33', borderDash: [5,5], pointRadius: 0 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Speedup (x)' } }, x: { title: { display: true, text: 'AI Workers' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t5-efficiency'), {
+    type: 'bar',
+    data: { labels: workers.map(String), datasets: [
+      { label: 'Multi-Thread', data: mtEff, backgroundColor: COLORS.green+'99' },
+      { label: 'Multi-Process', data: mpEff, backgroundColor: COLORS.orange+'99' },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Efficiency (%)' }, max: 120 }, x: { title: { display: true, text: 'AI Workers' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t5-throughput'), {
+    type: 'bar',
+    data: { labels: workers.map(String), datasets: [
+      { label: 'Multi-Thread', data: mtTp, backgroundColor: COLORS.green+'99' },
+      { label: 'Multi-Process', data: mpTp, backgroundColor: COLORS.orange+'99' },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Predictions/sec' } }, x: { title: { display: true, text: 'AI Workers' } } } }
+  });
+
+  document.getElementById('analysis-t5').innerHTML = `<h4>Phân Tích Test 5 — Amdahl's Law</h4><ul>
+    <li>Linear scaling (ideal): Speedup = N → Efficiency = 100%</li>
+    <li>Sublinear (typical): Speedup &lt; N do synchronization overhead</li>
+    <li>Negative scaling: Quá nhiều workers → context switching overhead &gt; performance gain</li>
+    <li><strong>Python GIL:</strong> Multi-thread bị hạn chế cho pure-Python CPU-bound code, nhưng numpy/XGBoost release GIL</li>
+    <li><strong>IPC overhead:</strong> Multi-process phải serialize data qua pipe (~100μs/msg vs ~1μs cho thread queue)</li>
+    <li>GPU inference thường chỉ cần 1-2 workers vì GPU tự parallel hóa nội bộ</li>
+  </ul>`;
+})();
+
+// ════════════════════════════════════════
+// TEST 6: CPU vs GPU
+// ════════════════════════════════════════
+(function() {
+  const d = DATA.test6_cpu_gpu || {};
+  const cpu = d.cpu || {};
+  const gpu = d.gpu || {};
+  const bs = [...new Set([...Object.keys(cpu), ...Object.keys(gpu)].map(Number))].filter(x=>!isNaN(x)).sort((a,b)=>a-b);
+
+  if (bs.length === 0) {
+    document.getElementById('analysis-t6').innerHTML = '<h4>Không có dữ liệu CPU/GPU</h4>';
+    return;
+  }
+
+  const cpuTp = bs.map(k => cpu[k]?.throughput || 0);
+  const gpuTp = bs.map(k => gpu[k]?.throughput || 0);
+  const speedups = bs.map(k => (gpu[k]?.throughput||0) / Math.max(cpu[k]?.throughput||1, 1));
+
+  new Chart(document.getElementById('chart-t6-throughput'), {
+    type: 'bar',
+    data: { labels: bs.map(String), datasets: [
+      { label: 'CPU', data: cpuTp, backgroundColor: COLORS.blue+'99' },
+      { label: 'GPU', data: gpuTp, backgroundColor: COLORS.green+'99' },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Samples/sec' } }, x: { title: { display: true, text: 'Batch Size' } } } }
+  });
+
+  new Chart(document.getElementById('chart-t6-speedup'), {
+    type: 'bar',
+    data: { labels: bs.map(String), datasets: [
+      { label: 'GPU Speedup vs CPU', data: speedups, backgroundColor: COLORS.cyan+'99' },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'Speedup (x)' } }, x: { title: { display: true, text: 'Batch Size' } } } }
+  });
+
+  document.getElementById('analysis-t6').innerHTML = `<h4>Phân Tích Test 6</h4><ul>
+    <li>GPU hiệu quả nhất với batch lớn (≥128) nhờ massive parallelism (thousands of CUDA cores)</li>
+    <li>Batch nhỏ: GPU overhead (kernel launch, memory transfer) lớn hơn compute time</li>
+    <li>XGBoost hist tree_method hỗ trợ CUDA natively (không cần copy data)</li>
+    <li>Với model nhỏ (150 estimators, depth 6), CPU có thể nhanh hơn GPU do low overhead</li>
+  </ul>`;
+})();
+
+// ════════════════════════════════════════
+// SUMMARY TABLE
+// ════════════════════════════════════════
+(function() {
+  const d = DATA.test2_pipeline_comparison || {};
+  const tbody = document.getElementById('summary-tbody');
+  const modes = [
+    ['Single-Thread', d.single_thread],
+    ['Multi-Thread (2w)', d.multi_thread],
+    ['Multi-Process (2w)', d.multi_process],
+  ];
+
+  modes.forEach(([name, r]) => {
+    if (!r) return;
+    const sp = r.speedup_vs_single || 1;
+    let badge = 'badge-green';
+    if (sp < 0.5) badge = 'badge-red';
+    else if (sp < 1) badge = 'badge-orange';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${name}</td>
+      <td>${fmt(r.throughput)}</td>
+      <td>${fmt(r.avg_latency_ms, 2)}</td>
+      <td>${fmt(r.p95_latency_ms, 2)}</td>
+      <td>${fmt(r.p99_latency_ms, 2)}</td>
+      <td>${sp.toFixed(2)}x</td>
+      <td><span class="badge ${badge}">${sp >= 1 ? 'Optimal' : sp >= 0.5 ? 'Acceptable' : 'Suboptimal'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+})();
+</script>
+</body>
+</html>

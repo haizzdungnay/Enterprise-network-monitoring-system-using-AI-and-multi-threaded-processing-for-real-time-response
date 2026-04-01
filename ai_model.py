@@ -66,14 +66,13 @@ try:
     import torch.nn as nn
     from torch.utils.data import DataLoader, TensorDataset
     HAS_TORCH = True
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and torch.cuda.device_count() > 0:
         _vram = torch.cuda.get_device_properties(0).total_memory // 1024**2
         print(f"[+] GPU detected: {torch.cuda.get_device_name(0)} "
               f"| VRAM: {_vram} MB "
               f"| Profile: {config._GPU_PROFILE_NAME.upper()}")
-except ImportError:
+except Exception:
     HAS_TORCH = False
-    print("[!] PyTorch chua duoc cai dat. GPU MLP se khong kha dung.")
 
 
 class _TorchMLP(nn.Module if HAS_TORCH else object):

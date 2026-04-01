@@ -398,6 +398,21 @@ def api_config():
     return jsonify({'ok': True})
 
 
+@app.route('/evaluation')
+def evaluation_page():
+    return send_from_directory('dashboard_static', 'evaluation.html')
+
+
+@app.route('/api/benchmark')
+def api_benchmark():
+    """Trả về kết quả benchmark nghiên cứu."""
+    path = os.path.join(config.RESULTS_DIR, "research_benchmark.json")
+    if os.path.exists(path):
+        with open(path, encoding='utf-8') as f:
+            return jsonify(json.load(f))
+    return jsonify({'error': 'No benchmark results. Run research_benchmark.py first.'}), 404
+
+
 @app.route('/api/alert/<int:idx>')
 def api_alert_detail(idx):
     """Layer 5: flow detail for a specific alert."""

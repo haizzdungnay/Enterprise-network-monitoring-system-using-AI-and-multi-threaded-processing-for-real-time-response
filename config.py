@@ -23,11 +23,11 @@ import multiprocessing
 # ── Auto-detect GPU (PyTorch / XGBoost CUDA) ──
 try:
     import torch
-    _CUDA_AVAILABLE = torch.cuda.is_available()
+    _CUDA_AVAILABLE = torch.cuda.is_available() and torch.cuda.device_count() > 0
     _GPU_NAME = torch.cuda.get_device_name(0) if _CUDA_AVAILABLE else "None"
     _GPU_VRAM_MB = (torch.cuda.get_device_properties(0).total_memory // 1024**2
                     if _CUDA_AVAILABLE else 0)
-except (ImportError, AttributeError, RuntimeError):
+except Exception:
     _CUDA_AVAILABLE = False
     _GPU_NAME = "None (torch not installed)"
     _GPU_VRAM_MB = 0

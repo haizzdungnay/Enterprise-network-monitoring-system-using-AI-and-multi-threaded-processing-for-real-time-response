@@ -28,7 +28,16 @@ models/*.joblib
 models/*.pt
 
 # Data (thường không commit CSV lớn)
-# data/dataset.csv
+data/dataset.csv
+MachineLearningCSV/
+
+# Logs
+logs/
+train_run.log
+
+# Local config
+.claude/
+exp
 
 # OS
 .DS_Store

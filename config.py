@@ -131,8 +131,8 @@ _GPU_PROFILE = GPU_PROFILES.get(_GPU_PROFILE_NAME, None)
 # 1. ĐƯỜNG DẪN DỮ LIỆU
 # ═══════════════════════════════════════════════════════════════
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-DATASET_DIR = os.path.join(BASE_DIR, "MachineLearningCSV", "MachineLearningCVE")
+DATA_DIR = os.path.join(BASE_DIR, "data")           # Cache merged dataset
+DATASET_DIR = os.path.join(BASE_DIR, "MachineLearningCVE")  # 8 file CSV thật
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
@@ -300,6 +300,9 @@ Cả 2 dataset đều sử dụng FLOW-BASED features:
 """
 DATASET_TYPE = "cicids2017"        # "cicids2017" hoặc "unsw_nb15"
 DATASET_PATH = os.path.join(DATA_DIR, "dataset.csv")  # Merged cache (tự động tạo)
+# Số rows sample từ mỗi file khi merge (None = lấy hết ~2.8M rows)
+# 100K × 8 file = 800K rows — đủ mạnh, train trong vài phút trên GPU
+CICIDS_SAMPLE_PER_FILE = 100000
 TEST_SIZE = 0.2                    # 20% cho test
 RANDOM_STATE = 42
 

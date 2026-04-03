@@ -357,11 +357,11 @@ def load_cicids2017_dir(dataset_dir):
     label_col = 'Label' if 'Label' in combined.columns else 'label'
     combined['Label_Binary'] = (combined[label_col].str.strip() != 'BENIGN').astype(int)
 
-    # Chi giu CANONICAL_FEATURES (loai bo duplicate Fwd Header Length.1, v.v.)
+    # Chỉ giữ CANONICAL_FEATURES (loại bỏ duplicate Fwd Header Length.1, v.v.)
     feature_cols = [c for c in CANONICAL_FEATURES if c in combined.columns]
     missing = [c for c in CANONICAL_FEATURES if c not in combined.columns]
     if missing:
-        print(f"    [!] Features khong co trong CSV (bo qua): {missing}")
+        print(f"    [!] Features không có trong CSV (bỏ qua): {missing}")
 
     combined[feature_cols] = combined[feature_cols].replace([np.inf, -np.inf], np.nan)
     combined = combined.dropna(subset=feature_cols)
@@ -373,8 +373,107 @@ def load_cicids2017_dir(dataset_dir):
     return combined[feature_cols], combined['Label_Binary'], feature_cols
 
 
+def load_cicids2017_folder(folder_path, sample_per_file=None):
+    """
+    Load và merge tất cả file CSV CICIDS2017 từ một folder, có stratified sampling.
+
+    LÝ THUYẾT: Tại sao sample?
+    ──────────────────────────
+    CICIDS2017 có ~2.8M rows, tổng ~847MB CSV.
+    Load hết cần ~6-8GB RAM. Sample 100K/file (800K tổng)
+    vẫn đại diện đủ mọi loại tấn công, train vài phút trên GPU.
+    """
+    import glob
+    csv_files = sorted(glob.glob(os.path.join(folder_path, "*.csv")))
+    csv_files = [f for f in csv_files
+                 if os.path.basename(f) != 'dataset.csv']
+
+    if not csv_files:
+        return None, None, None
+
+    print(f"[*] Tìm thấy {len(csv_files)} file CSV trong {folder_path}")
+    chunks = []
+    label_stats = {}
+
+    for fpath in csv_files:
+        fname = os.path.basename(fpath)
+        try:
+            df = pd.read_csv(fpath, low_memory=False,
+                             encoding='utf-8', on_bad_lines='skip')
+        except Exception:
+            df = pd.read_csv(fpath, low_memory=False,
+                             encoding='latin-1', on_bad_lines='skip')
+
+        df.columns = df.columns.str.strip()
+
+        # Tìm cột label với các biến thể tên khác nhau
+        label_col = None
+        for candidate in ['Label', 'label', 'LABEL']:
+            if candidate in df.columns:
+                label_col = candidate
+                break
+        if label_col is None:
+            print(f"    [!] Bỏ qua {fname}: không có cột Label")
+            continue
+        if label_col != 'Label':
+            df = df.rename(columns={label_col: 'Label'})
+
+        df['Label'] = df['Label'].astype(str).str.strip()
+
+        # Sample giữ đúng tỷ lệ class trong từng file (stratified)
+        if sample_per_file and len(df) > sample_per_file:
+            sampled_parts = []
+            for _, grp in df.groupby('Label'):
+                n = max(1, int(sample_per_file * len(grp) / len(df)))
+                sampled_parts.append(grp.sample(min(len(grp), n),
+                                                random_state=config.RANDOM_STATE))
+            df = pd.concat(sampled_parts, ignore_index=True)
+
+        for lbl, cnt in df['Label'].value_counts().items():
+            label_stats[lbl] = label_stats.get(lbl, 0) + cnt
+
+        chunks.append(df)
+        print(f"    {fname[:55]:<55} {len(df):>7,} rows")
+
+    if not chunks:
+        return None, None, None
+
+    df_all = pd.concat(chunks, ignore_index=True)
+    df_all = df_all.sample(frac=1,
+                           random_state=config.RANDOM_STATE).reset_index(drop=True)
+
+    print(f"\n    Tổng: {len(df_all):,} flows")
+    print(f"    Phân bố label:")
+    for lbl, cnt in sorted(label_stats.items(), key=lambda x: -x[1]):
+        print(f"      {str(lbl)[:35]:<35} {cnt:>8,}  ({cnt/len(df_all)*100:.1f}%)")
+
+    # Binary: BENIGN=0, mọi loại attack=1
+    df_all['Label_Binary'] = (
+        df_all['Label'].str.strip() != 'BENIGN'
+    ).astype(int)
+
+    # Chỉ giữ CANONICAL_FEATURES để nhất quán với PacketFeatureExtractor
+    feature_cols = [c for c in CANONICAL_FEATURES if c in df_all.columns]
+    missing = [c for c in CANONICAL_FEATURES if c not in df_all.columns]
+    if missing:
+        print(f"    [!] Features không có trong CSV (bỏ qua): {missing}")
+
+    df_all[feature_cols] = df_all[feature_cols].replace([np.inf, -np.inf], np.nan)
+    for col in feature_cols:
+        df_all[col] = pd.to_numeric(df_all[col], errors='coerce')
+    df_all = df_all.dropna(subset=feature_cols)
+
+    print(f"    Sau cleanup: {len(df_all):,} flows | {len(feature_cols)} features")
+    return df_all[feature_cols], df_all['Label_Binary'], feature_cols
+
+
 def load_dataset():
-    """Entry point: Load dataset theo config."""
+    """
+    Entry point: Load dataset theo thứ tự ưu tiên:
+      1. Merged cache (dataset.csv) nếu đã tồn tại → load nhanh
+      2. Folder nhiều file CSV CICIDS2017 (DATASET_DIR) → merge + stratified sample + lưu cache
+      3. Synthetic data → fallback khi không có gì
+    """
     # Ưu tiên 1: Merged cache (tránh phải load lại 8 file mỗi lần)
     if os.path.exists(config.DATASET_PATH):
         print(f"[*] Dùng merged cache: {config.DATASET_PATH}")
@@ -382,36 +481,31 @@ def load_dataset():
             X, y, names = load_cicids2017(config.DATASET_PATH)
         else:
             X, y, names = load_unsw_nb15(config.DATASET_PATH)
+        return preprocess_data(X, y, names)
 
-    # Ưu tiên 2: Thư mục CICIDS2017 thực tế (MachineLearningCSV/MachineLearningCVE)
-    elif (config.DATASET_TYPE == "cicids2017"
-          and hasattr(config, 'DATASET_DIR')
-          and os.path.isdir(config.DATASET_DIR)):
-        X, y, names = load_cicids2017_dir(config.DATASET_DIR)
+    # Ưu tiên 2: Thư mục CICIDS2017 thực tế
+    if (config.DATASET_TYPE == "cicids2017"
+            and hasattr(config, 'DATASET_DIR')
+            and os.path.isdir(config.DATASET_DIR)):
+        sample_n = getattr(config, 'CICIDS_SAMPLE_PER_FILE', 100000)
+        X, y, names = load_cicids2017_folder(config.DATASET_DIR,
+                                             sample_per_file=sample_n)
         if X is not None:
             # Lưu merged cache để lần sau load nhanh hơn
             print(f"[*] Đang lưu merged cache → {config.DATASET_PATH}")
-            merged = X.copy()
-            merged['Label'] = y.values
-            merged.to_csv(config.DATASET_PATH, index=False)
+            df_cache = X.copy() if hasattr(X, 'copy') else pd.DataFrame(X, columns=names)
+            df_cache['Label'] = y.values if hasattr(y, 'values') else y
+            df_cache.to_csv(config.DATASET_PATH, index=False)
             print(f"[+] Cache đã lưu: {config.DATASET_PATH}")
+            return preprocess_data(X, y, names)
         else:
             print("[!] Không tìm thấy CSV trong DATASET_DIR. Tạo synthetic data...")
-            X, y, names = _make_synthetic()
 
     # Ưu tiên 3: Synthetic data (demo / unit test)
-    else:
-        print("[!] Không tìm thấy dataset. Tạo synthetic data...")
-        X, y, names = _make_synthetic()
-
-    return preprocess_data(X, y, names)
-
-
-def _make_synthetic():
+    print("[!] Không tìm thấy dataset. Tạo synthetic data...")
     df = generate_synthetic_dataset(n_samples=100000, save_path=config.DATASET_PATH)
-    label_col = 'Label'
-    feature_cols = [c for c in df.columns if c != label_col]
-    return df[feature_cols], df[label_col], feature_cols
+    feature_cols = [c for c in df.columns if c != 'Label']
+    return preprocess_data(df[feature_cols], df['Label'], feature_cols)
 
 
 if __name__ == "__main__":

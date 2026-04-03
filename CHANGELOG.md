@@ -5,6 +5,47 @@ Format: `[FILE] Mô tả thay đổi`
 
 ---
 
+## [2026-04-03] — Xác nhận train thật với CICIDS2017 + fix đường dẫn dataset
+
+### Vấn đề phát hiện
+- `DATASET_DIR` trong `config.py` trỏ đến `MachineLearningCSV/MachineLearningCVE/`
+  nhưng thực tế folder đặt tại `MachineLearningCVE/` (không có thư mục cha `MachineLearningCSV`).
+- `load_dataset()` fallback sang synthetic data mà **không báo lỗi** rõ ràng.
+- Hàm `load_cicids2017_dir()` load toàn bộ 2.8M rows → tốn ~6-8GB RAM,
+  không khả thi trên máy tính thông thường.
+
+### Thay đổi
+
+#### `config.py`
+- **Sửa** `DATASET_DIR = os.path.join(BASE_DIR, "MachineLearningCVE")` — bỏ cấp cha `MachineLearningCSV/`
+- **Thêm** `CICIDS_SAMPLE_PER_FILE = 100000` — giới hạn 100K rows/file khi merge
+  (800K tổng, đủ đại diện, RAM ~1.5GB thay vì 6-8GB)
+
+#### `dataset_loader.py`
+- **Thêm** hàm `load_cicids2017_folder()` với stratified sampling:
+  - Đọc từng file, sample theo đúng tỷ lệ class trong file đó
+  - Hỗ trợ encoding utf-8 → latin-1 fallback
+  - Tự phát hiện tên cột Label (có thể có leading space trong một số file)
+- **Cập nhật** `load_dataset()`: ưu tiên `DATASET_DIR` trước `DATASET_PATH`
+  khi cache chưa có, tự lưu cache sau khi merge
+
+### Kết quả xác nhận trên RTX 3070 Ti
+
+| Chỉ số | Giá trị |
+|--------|---------|
+| Dataset | 799,334 flows thật — 8 files CICIDS2017 |
+| Features | 18 canonical (khớp với PacketFeatureExtractor) |
+| Attack types | 14 loại: DDoS, PortScan, DoS Hulk, FTP-Patator, SSH-Patator, Bot, Web Attack... |
+| Model | XGBoost CUDA (device='cuda', tree_method='hist') |
+| Training time | **2.71 giây** trên GPU |
+| Accuracy | **99.91%** |
+| Precision | **99.58%** |
+| Recall | **99.94%** — chỉ bỏ sót 17/30,779 tấn công |
+| F1-Score | **99.76%** |
+| Inference throughput | 780,000 samples/giây |
+
+---
+
 ## [2026-04-03] — Research Benchmark & Evaluation Dashboard
 
 ### Thay đổi chính trong ngày
@@ -103,83 +144,23 @@ Format: `[FILE] Mô tả thay đổi`
 #### `config.py`
 - **Thêm** biến `DATASET_DIR = os.path.join(BASE_DIR, "MachineLearningCSV", "MachineLearningCVE")`
   để trỏ đúng đến thư mục chứa 8 CSV files CICIDS2017.
-- **Giữ nguyên** `DATASET_PATH = data/dataset.csv` làm đường dẫn merged cache
-  (tự động tạo lần đầu chạy, tránh phải load lại 8 file mỗi lần).
-
----
+- **Giữ nguyên** `DATASET_PATH = data/dataset.csv` làm đường dẫn merged cache.
 
 #### `dataset_loader.py`
 - **Thêm** hằng số `CANONICAL_FEATURES` — danh sách 18 features chuẩn mà
-  `PacketFeatureExtractor` có thể trích xuất từ live traffic:
-  ```
-  Flow Duration, Total Fwd Packets, Total Backward Packets,
-  Flow Bytes/s, Flow Packets/s, Down/Up Ratio,
-  Fwd Packet Length Mean, Bwd Packet Length Mean,
-  SYN Flag Count, FIN Flag Count, RST Flag Count,
-  PSH Flag Count, ACK Flag Count,
-  Active Mean, Idle Mean,
-  Flow IAT Mean, Flow IAT Std,
-  Destination Port
-  ```
-  Mục đích: đảm bảo training và inference dùng đúng tập features.
-
-- **Sửa** `load_cicids2017()`: thay vì lấy toàn bộ cột CSV (78 features),
-  giờ chỉ giữ các cột có trong `CANONICAL_FEATURES`.
-  Tự động bỏ `Fwd Header Length.1` (duplicate) và các cột không liên quan.
-
-- **Thêm** hàm `load_cicids2017_dir(dataset_dir)`:
-  Load và merge toàn bộ CSV files trong thư mục CICIDS2017 thành 1 DataFrame.
-  Áp dụng cùng logic filter `CANONICAL_FEATURES`.
-
-- **Sửa** `load_dataset()` — cập nhật thứ tự ưu tiên 3 tầng:
-  1. Dùng `data/dataset.csv` nếu đã có (merged cache, load nhanh).
-  2. Load từ `DATASET_DIR` (8 CSV files), merge, lưu cache vào `data/dataset.csv`.
-  3. Tạo synthetic data 100K flows nếu không tìm thấy gì (chỉ dùng để demo/test).
-
-- **Thêm** hàm helper `_make_synthetic()` để tách logic synthetic data ra riêng.
-
----
+  `PacketFeatureExtractor` có thể trích xuất từ live traffic.
+- **Sửa** `load_cicids2017()`: chỉ giữ các cột có trong `CANONICAL_FEATURES`.
+- **Thêm** hàm `load_cicids2017_dir(dataset_dir)`: load và merge toàn bộ CSV files.
+- **Sửa** `load_dataset()`: thứ tự ưu tiên cache → DATASET_DIR → synthetic.
 
 #### `feature_extractor.py`
-- **Bỏ** `Protocol` khỏi `PacketFeatureExtractor.feature_names`.
-  Lý do: CICIDS2017 không có cột Protocol → không thể train trên feature này.
-  Kết quả: giảm từ 19 xuống 18 features, khớp với `CANONICAL_FEATURES`.
-
-- **Cập nhật** `extract_from_packet_dict()`:
-  - Bỏ dòng `features[17] = packet_info.get('protocol', 6)`
-  - Chuyển `features[18] = packet_info.get('dst_port', 0)`
-    thành `features[17] = packet_info.get('dst_port', 0)`
-
-- **Cập nhật** `generate_simulated_features()`:
-  - Bỏ `np.random.choice([6, 17, 1])` (Protocol) khỏi cả 2 nhánh attack/normal.
-  - Thêm comment rõ tên feature cho từng phần tử mảng (18 elements).
-
----
+- **Bỏ** `Protocol` khỏi `PacketFeatureExtractor.feature_names` (CICIDS2017 không có cột này).
 
 #### `train_model.py`
-- **Thêm** UTF-8 encoding fix ở đầu file để chạy được trên Windows:
-  ```python
-  import sys
-  if hasattr(sys.stdout, 'reconfigure'):
-      sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-  ```
-  Lý do: Windows console mặc định dùng cp1252, không encode được ký tự
-  box-drawing Unicode (`╔═╗║╚╝─`) dẫn đến `UnicodeEncodeError` khi chạy.
-
----
+- **Thêm** UTF-8 encoding fix để chạy trên Windows (cp1252 không hỗ trợ box-drawing chars).
 
 #### `README.md`
-- **Viết lại hoàn toàn** để phản ánh đúng cấu trúc và tính năng hiện tại:
-  - Cập nhật mục "Cài Đặt & Chạy": hướng dẫn đặt dataset tại `MachineLearningCSV/MachineLearningCVE/`.
-  - Cập nhật cấu trúc thư mục: bỏ `producer.py`, `consumer.py`, `ai_worker.py`
-    (không tồn tại — các chức năng này nằm trong `main_monitor.py`).
-  - Thêm mục "Dataset CICIDS2017": bảng chi tiết 8 file theo ngày/loại tấn công,
-    sơ đồ pipeline load 3 tầng ưu tiên.
-  - Thêm mục "GPU & Cấu hình": bảng GPU profiles (LOW/MEDIUM/HIGH/ULTRA),
-    bảng tham số `config.py` bao gồm `DATASET_DIR` mới.
-  - Sửa "80+ features" thành "79 features" (thực tế của CICIDS2017 CICFlowMeter).
-
----
+- **Viết lại** phản ánh đúng cấu trúc hiện tại, thêm hướng dẫn dataset CICIDS2017.
 
 ### Kết quả sau khi sửa
 
@@ -211,5 +192,4 @@ Commit: `7a6d1cb` — "Optimize training pipeline for GPU (RTX 3070 Ti)"
 | `train_model.py` | Pipeline train: load → preprocess → train → evaluate → save |
 | `main_monitor.py` | Orchestrator Producer-Consumer-AI với threading/multiprocessing |
 | `benchmark.py` | Benchmark throughput single vs multi thread/process |
-| `feature_extractor.py` | Trích xuất features từ packet/flow thực tế |
 | `requirements.txt` | Dependencies: numpy, pandas, scikit-learn, xgboost, torch (optional) |

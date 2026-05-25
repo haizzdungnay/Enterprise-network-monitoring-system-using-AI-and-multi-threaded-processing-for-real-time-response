@@ -1,38 +1,38 @@
 {
   "single_thread": {
-    "elapsed_sec": 5.768824815750122,
+    "elapsed_sec": 5.056195259094238,
     "packets_captured": 50000.0,
     "packets_processed": 50000.0,
     "ai_predictions": 50000.0,
-    "attacks_detected": 5681.0,
-    "throughput_capture": 8667.27654192052,
-    "throughput_inference": 8667.27654192052,
-    "avg_latency_ms": 8.97184856414795,
-    "p50_latency_ms": 8.848428726196289,
-    "p95_latency_ms": 14.032602310180664,
-    "p99_latency_ms": 15.180196762084979
+    "attacks_detected": 1774.0,
+    "throughput_capture": 9888.858605701265,
+    "throughput_inference": 9888.858605701265,
+    "avg_latency_ms": 4.2151975822448735,
+    "p50_latency_ms": 4.000186920166016,
+    "p95_latency_ms": 6.523847579956055,
+    "p99_latency_ms": 10.506391525268555
   },
   "multi_thread": {
-    "elapsed_sec": 127.29908728599548,
+    "elapsed_sec": 145.10280394554138,
     "packets_captured": 50000.0,
     "packets_processed": 50000.0,
-    "ai_predictions": 49890.0,
-    "attacks_detected": 5619.0,
-    "throughput_capture": 392.7757933383128,
-    "throughput_inference": 391.91168659296846,
-    "avg_latency_ms": 555.3897638410766,
-    "p50_latency_ms": 613.0684614181519,
-    "p95_latency_ms": 989.7679805755615,
-    "p99_latency_ms": 1024.7780990600586
+    "ai_predictions": 49952.0,
+    "attacks_detected": 1705.0,
+    "throughput_capture": 344.5832791678204,
+    "throughput_inference": 344.2524792198193,
+    "avg_latency_ms": 85.70962742419673,
+    "p50_latency_ms": 56.50484561920166,
+    "p95_latency_ms": 280.5320739746094,
+    "p99_latency_ms": 332.49526262283325
   },
   "multi_process": {
-    "elapsed_sec": 129.4565932750702,
+    "elapsed_sec": 129.40544939041138,
     "packets_captured": 50000.0,
     "packets_processed": 50000.0,
-    "ai_predictions": 49944.0,
-    "attacks_detected": 5593.0,
-    "throughput_capture": 386.2298453487006,
-    "throughput_inference": 385.7972679219101,
-    "avg_latency_ms": 397.5987959448466
+    "ai_predictions": 49977.0,
+    "attacks_detected": 1714.0,
+    "throughput_capture": 386.382491892995,
+    "throughput_inference": 386.2047559467242,
+    "avg_latency_ms": 1005.8789765021188
   }
 }

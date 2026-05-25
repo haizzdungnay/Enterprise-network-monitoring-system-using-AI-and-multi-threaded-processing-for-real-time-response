@@ -1,195 +1,195 @@
 {
   "metadata": {
-    "timestamp": "2026-04-02 02:42:11",
+    "timestamp": "2026-05-25 09:03:13",
     "hardware": {
       "os": "Windows 11",
-      "python": "3.13.2",
-      "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
-      "cpu_cores_physical": 12,
-      "ram_gb": "15.6",
-      "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
-      "gpu_vram_mb": 4095,
+      "python": "3.12.7",
+      "cpu": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+      "cpu_cores_physical": 20,
+      "ram_gb": "N/A",
+      "gpu": "NVIDIA GeForce RTX 3070 Ti",
+      "gpu_vram_mb": 8191,
       "gpu_compute_capability": "8.6",
-      "cuda_version": "12.4"
+      "cuda_version": "12.1"
     },
     "config": {
       "model_type": "xgboost",
-      "batch_size": 128,
+      "batch_size": 256,
       "queue_size": 10000,
       "num_consumers": 2,
       "num_ai_workers": 1,
       "use_gpu": true,
-      "gpu_profile": "low"
+      "gpu_profile": "high"
     }
   },
   "test1_inference_batch": {
     "1": {
       "batch_size": 1,
-      "throughput_mean": 2449.7582303911577,
-      "throughput_std": 121.47548560227256,
-      "latency_ms_mean": 0.40920973000029337,
-      "latency_ms_std": 0.020291370000631997,
+      "throughput_mean": 2283.601915191783,
+      "throughput_std": 18.091118171075323,
+      "latency_ms_mean": 0.43793217999627815,
+      "latency_ms_std": 0.003469380002934508,
       "speedup_vs_bs1": 1.0
     },
     "2": {
       "batch_size": 2,
-      "throughput_mean": 4082.289745111648,
-      "throughput_std": 532.0127098771745,
-      "latency_ms_mean": 0.24919281999900705,
-      "latency_ms_std": 0.032475339999655295,
-      "speedup_vs_bs1": 1.6664051556058332
+      "throughput_mean": 3573.3674216179616,
+      "throughput_std": 30.88221928002372,
+      "latency_ms_mean": 0.2798689799965359,
+      "latency_ms_std": 0.002418719988781959,
+      "speedup_vs_bs1": 1.5647943706150993
     },
     "4": {
       "batch_size": 4,
-      "throughput_mean": 9022.394880879001,
-      "throughput_std": 53.192967622781,
-      "latency_ms_mean": 0.1108391699999629,
-      "latency_ms_std": 0.0006534699998155674,
-      "speedup_vs_bs1": 3.6829735967203496
+      "throughput_mean": 6822.909362382326,
+      "throughput_std": 265.97001570528255,
+      "latency_ms_mean": 0.14678809999022635,
+      "latency_ms_std": 0.005722080008126781,
+      "speedup_vs_bs1": 2.9877840428283755
     },
     "8": {
       "batch_size": 8,
-      "throughput_mean": 18064.77852153616,
-      "throughput_std": 64.29394820690686,
-      "latency_ms_mean": 0.05535703999921679,
-      "latency_ms_std": 0.00019701999990502303,
-      "speedup_vs_bs1": 7.374106676090938
+      "throughput_mean": 12984.888829524809,
+      "throughput_std": 2.8899280798959808,
+      "latency_ms_mean": 0.077012600004673,
+      "latency_ms_std": 1.7139990814027395e-05,
+      "speedup_vs_bs1": 5.686143781515573
     },
     "16": {
       "batch_size": 16,
-      "throughput_mean": 34176.66951398677,
-      "throughput_std": 195.1038348540751,
-      "latency_ms_mean": 0.0292606800008798,
-      "latency_ms_std": 0.00016704000008758123,
-      "speedup_vs_bs1": 13.951037735070582
+      "throughput_mean": 24208.415221357245,
+      "throughput_std": 1.8343285723385634,
+      "latency_ms_mean": 0.04130795000819489,
+      "latency_ms_std": 3.130000550299883e-06,
+      "speedup_vs_bs1": 10.600978682102811
     },
     "32": {
       "batch_size": 32,
-      "throughput_mean": 64303.01850871205,
-      "throughput_std": 662.4198781829218,
-      "latency_ms_mean": 0.015553019999788375,
-      "latency_ms_std": 0.00016021999981603776,
-      "speedup_vs_bs1": 26.248720265936065
+      "throughput_mean": 42158.75375154176,
+      "throughput_std": 1038.5742415487111,
+      "latency_ms_mean": 0.023734269989654423,
+      "latency_ms_std": 0.0005846899934113022,
+      "speedup_vs_bs1": 18.461516199946413
     },
     "64": {
       "batch_size": 64,
-      "throughput_mean": 112376.16451279235,
-      "throughput_std": 957.2897038824449,
-      "latency_ms_mean": 0.00889932999998564,
-      "latency_ms_std": 7.580999954370695e-05,
-      "speedup_vs_bs1": 45.87234900108858
+      "throughput_mean": 84686.25355776692,
+      "throughput_std": 6638.447751519474,
+      "latency_ms_mean": 0.011881300003733487,
+      "latency_ms_std": 0.000931360002141445,
+      "speedup_vs_bs1": 37.0845080284734
     },
     "128": {
       "batch_size": 128,
-      "throughput_mean": 212236.86219988443,
-      "throughput_std": 943.6632942797587,
-      "latency_ms_mean": 0.00471181000029901,
-      "latency_ms_std": 2.094999945256859e-05,
-      "speedup_vs_bs1": 86.63584004614046
+      "throughput_mean": 132172.34833942386,
+      "throughput_std": 6203.014013880653,
+      "latency_ms_mean": 0.007582579995505512,
+      "latency_ms_std": 0.00035585998557508035,
+      "speedup_vs_bs1": 57.8788918769687
     },
     "256": {
       "batch_size": 256,
-      "throughput_mean": 397395.98186055606,
-      "throughput_std": 1331.280634826282,
-      "latency_ms_mean": 0.0025164099999528842,
-      "latency_ms_std": 8.42999943415643e-06,
-      "speedup_vs_bs1": 162.2184495312842
+      "throughput_mean": 226687.1757277045,
+      "throughput_std": 10543.864142680512,
+      "latency_ms_mean": 0.004420929995831102,
+      "latency_ms_std": 0.0002056300058029593,
+      "speedup_vs_bs1": 99.26737853023157
     },
     "512": {
       "batch_size": 512,
-      "throughput_mean": 657781.8546766834,
-      "throughput_std": 1613.875387954584,
-      "latency_ms_mean": 0.0015202699993096757,
-      "latency_ms_std": 3.7300000258255533e-06,
-      "speedup_vs_bs1": 268.5088865163866
+      "throughput_mean": 482286.48428810656,
+      "throughput_std": 19751.794487608306,
+      "latency_ms_mean": 0.002076939994003624,
+      "latency_ms_std": 8.506000740453605e-05,
+      "speedup_vs_bs1": 211.19551576816875
     }
   },
   "test2_pipeline_comparison": {
     "single_thread": {
       "predictions": 10000.0,
-      "elapsed_sec": 0.6044259999980568,
-      "throughput": 16544.622501401576,
-      "avg_latency_ms": 4.4027602800772,
-      "p50_latency_ms": 4.401300000608899,
-      "p95_latency_ms": 7.334225003069149,
-      "p99_latency_ms": 7.738704998337198,
-      "min_latency_ms": 0.9933999972417951,
-      "max_latency_ms": 8.746800005610567,
+      "elapsed_sec": 0.46826939994934946,
+      "throughput": 21355.228424239667,
+      "avg_latency_ms": 6.552178303047549,
+      "p50_latency_ms": 6.447399966418743,
+      "p95_latency_ms": 11.174409987870604,
+      "p99_latency_ms": 13.898296002298604,
+      "min_latency_ms": 0.7864999352023005,
+      "max_latency_ms": 19.1554999910295,
       "speedup_vs_single": 1.0
     },
     "multi_thread": {
       "predictions": 10000.0,
-      "elapsed_sec": 0.6833543999964604,
-      "throughput": 14633.695195423923,
-      "avg_latency_ms": 264.1283945106275,
-      "p50_latency_ms": 268.16930000131833,
-      "p95_latency_ms": 460.39579499483807,
-      "p99_latency_ms": 478.9359870021872,
-      "min_latency_ms": 42.05979999824194,
-      "max_latency_ms": 495.5852999992203,
+      "elapsed_sec": 1.2869193999795243,
+      "throughput": 7770.494407154874,
+      "avg_latency_ms": 77.30001809507375,
+      "p50_latency_ms": 72.9269000585191,
+      "p95_latency_ms": 140.501239959849,
+      "p99_latency_ms": 175.72548398165964,
+      "min_latency_ms": 2.959699952043593,
+      "max_latency_ms": 187.46330006979406,
       "dropped_packets": 0.0,
-      "speedup_vs_single": 0.8844985852160864
+      "speedup_vs_single": 0.36386847533481886
     },
     "multi_process": {
       "predictions": 10000.0,
-      "elapsed_sec": 1.8592023999954108,
-      "throughput": 5378.6505439239345,
-      "avg_latency_ms": 0.008821540002099938,
-      "p50_latency_ms": 0.007399218731052315,
-      "p95_latency_ms": 0.020626562445613672,
-      "p99_latency_ms": 0.032155468716155156,
-      "min_latency_ms": 0.005460156273784378,
-      "max_latency_ms": 0.10078749983222224,
-      "speedup_vs_single": 0.32509962336513165
+      "elapsed_sec": 1.5828152000904083,
+      "throughput": 6317.856942129955,
+      "avg_latency_ms": 0.007489909953437745,
+      "p50_latency_ms": 0.0059812498420797056,
+      "p95_latency_ms": 0.017326171928289114,
+      "p99_latency_ms": 0.017326171928289114,
+      "min_latency_ms": 0.004079297013959149,
+      "max_latency_ms": 0.017326171928289114,
+      "speedup_vs_single": 0.2958459079257026
     }
   },
   "test3_queue_buffer": {
     "100": {
       "predictions": 8000.0,
-      "elapsed_sec": 0.5677499000012176,
-      "throughput": 14090.711420614682,
-      "avg_latency_ms": 178.58117587478955,
-      "p50_latency_ms": 175.10245000084979,
-      "p95_latency_ms": 323.6417999956757,
-      "p99_latency_ms": 347.8452370008017,
-      "min_latency_ms": 20.366600001580082,
-      "max_latency_ms": 356.3330000033602,
+      "elapsed_sec": 0.6225737000349909,
+      "throughput": 12849.884278038682,
+      "avg_latency_ms": 61.75911085406551,
+      "p50_latency_ms": 58.65379993338138,
+      "p95_latency_ms": 109.73116001114244,
+      "p99_latency_ms": 126.45746592083016,
+      "min_latency_ms": 11.475399951450527,
+      "max_latency_ms": 131.66549999732524,
       "dropped_packets": 0.0
     },
     "1000": {
       "predictions": 8000.0,
-      "elapsed_sec": 0.5685471000033431,
-      "throughput": 14070.953839977303,
-      "avg_latency_ms": 233.7111087375888,
-      "p50_latency_ms": 239.76304999814602,
-      "p95_latency_ms": 399.4070250013464,
-      "p99_latency_ms": 418.84778500454564,
-      "min_latency_ms": 38.26139999728184,
-      "max_latency_ms": 423.13560000184225,
+      "elapsed_sec": 0.5586212000343949,
+      "throughput": 14320.974570079747,
+      "avg_latency_ms": 204.9342575824412,
+      "p50_latency_ms": 202.98529998399317,
+      "p95_latency_ms": 360.32193497521797,
+      "p99_latency_ms": 377.36233093892224,
+      "min_latency_ms": 18.612299929372966,
+      "max_latency_ms": 384.0084000257775,
       "dropped_packets": 0.0
     },
     "5000": {
       "predictions": 8000.0,
-      "elapsed_sec": 0.5713051999991876,
-      "throughput": 14003.023252740175,
-      "avg_latency_ms": 245.79672863748056,
-      "p50_latency_ms": 240.6120000014198,
-      "p95_latency_ms": 428.6835499980952,
-      "p99_latency_ms": 460.99972799689573,
-      "min_latency_ms": 41.379499998583924,
-      "max_latency_ms": 465.6405999994604,
+      "elapsed_sec": 0.5913676000200212,
+      "throughput": 13527.964669909466,
+      "avg_latency_ms": 100.18335959789692,
+      "p50_latency_ms": 102.17139997985214,
+      "p95_latency_ms": 172.79352998593816,
+      "p99_latency_ms": 187.6770169462543,
+      "min_latency_ms": 9.219500003382564,
+      "max_latency_ms": 250.84899994544685,
       "dropped_packets": 0.0
     },
     "10000": {
       "predictions": 8000.0,
-      "elapsed_sec": 0.5666802999985521,
-      "throughput": 14117.30741305184,
-      "avg_latency_ms": 248.18044387528516,
-      "p50_latency_ms": 252.73879999804194,
-      "p95_latency_ms": 427.4563999999373,
-      "p99_latency_ms": 444.57638300016697,
-      "min_latency_ms": 41.8569999965257,
-      "max_latency_ms": 448.4456000063801,
+      "elapsed_sec": 0.6076616999926046,
+      "throughput": 13165.220055990632,
+      "avg_latency_ms": 135.0333286819514,
+      "p50_latency_ms": 146.9735000282526,
+      "p95_latency_ms": 217.75815499713642,
+      "p99_latency_ms": 247.45647306786853,
+      "min_latency_ms": 8.65570001769811,
+      "max_latency_ms": 252.85849999636412,
       "dropped_packets": 0.0
     }
   },
@@ -197,392 +197,392 @@
     "1": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 5.466566000002786,
-        "throughput": 1463.4415828869392,
-        "avg_latency_ms": 0.6819293624575948,
-        "p50_latency_ms": 0.6299499982560519,
-        "p95_latency_ms": 0.9886099971481597,
-        "p99_latency_ms": 1.2425290021928965,
-        "min_latency_ms": 0.4960000005667098,
-        "max_latency_ms": 2.458999995724298
+        "elapsed_sec": 5.483538900036365,
+        "throughput": 1458.9118716650203,
+        "avg_latency_ms": 0.68378010088054,
+        "p50_latency_ms": 0.6930999225005507,
+        "p95_latency_ms": 1.0050050797872243,
+        "p99_latency_ms": 1.467150995740668,
+        "min_latency_ms": 0.4205000586807728,
+        "max_latency_ms": 3.836899995803833
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 4.778599600002053,
-        "throughput": 1674.1306386072947,
-        "avg_latency_ms": 2394.062043899982,
-        "p50_latency_ms": 2418.570350000664,
-        "p95_latency_ms": 4067.6520050030367,
-        "p99_latency_ms": 4211.896876997271,
-        "min_latency_ms": 72.33709999854909,
-        "max_latency_ms": 4253.078599998844,
+        "elapsed_sec": 6.106067699962296,
+        "throughput": 1310.1721751380842,
+        "avg_latency_ms": 3001.769829299461,
+        "p50_latency_ms": 2904.7342000412755,
+        "p95_latency_ms": 5274.78743494721,
+        "p99_latency_ms": 5493.566673070891,
+        "min_latency_ms": 96.87570005189627,
+        "max_latency_ms": 5544.336199993268,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 1.1439682035716985
+      "mt_speedup_vs_st": 0.8980475110143677
     },
     "4": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 1.7708797999948729,
-        "throughput": 4517.5285188882735,
-        "avg_latency_ms": 0.7771113124608746,
-        "p50_latency_ms": 0.7476999999198597,
-        "p95_latency_ms": 1.0630250031681496,
-        "p99_latency_ms": 1.2875139957031936,
-        "min_latency_ms": 0.5372000014176592,
-        "max_latency_ms": 1.8772000039462
+        "elapsed_sec": 2.121254099998623,
+        "throughput": 3771.3539363366194,
+        "avg_latency_ms": 0.933557800410199,
+        "p50_latency_ms": 0.8627499337308109,
+        "p95_latency_ms": 1.3656100374646483,
+        "p99_latency_ms": 1.8185169936623429,
+        "min_latency_ms": 0.5726000526919961,
+        "max_latency_ms": 11.758300010114908
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 1.6605755999989924,
-        "throughput": 4817.606617852782,
-        "avg_latency_ms": 829.1986212874417,
-        "p50_latency_ms": 837.2995000027004,
-        "p95_latency_ms": 1101.354110001557,
-        "p99_latency_ms": 1123.7633150017064,
-        "min_latency_ms": 99.73549999995157,
-        "max_latency_ms": 1146.2490000049002,
+        "elapsed_sec": 2.2276462999871,
+        "throughput": 3591.234389429923,
+        "avg_latency_ms": 1090.2072087506385,
+        "p50_latency_ms": 1090.855950023979,
+        "p95_latency_ms": 1214.4956049509346,
+        "p99_latency_ms": 1224.6562979195733,
+        "min_latency_ms": 110.90129998046905,
+        "max_latency_ms": 1247.5846000015736,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 1.0664252804846388
+      "mt_speedup_vs_st": 0.9522400840792845
     },
     "8": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 1.178312600000936,
-        "throughput": 6789.369815780333,
-        "avg_latency_ms": 0.9494948625097095,
-        "p50_latency_ms": 0.908900001377333,
-        "p95_latency_ms": 1.4202000020304695,
-        "p99_latency_ms": 1.7014269968058222,
-        "min_latency_ms": 0.5498000027728267,
-        "max_latency_ms": 3.2184000010602176
+        "elapsed_sec": 1.4016219000332057,
+        "throughput": 5707.673374545926,
+        "avg_latency_ms": 1.1207100136525696,
+        "p50_latency_ms": 1.0290000354871154,
+        "p95_latency_ms": 1.723199972184375,
+        "p99_latency_ms": 2.080243006348611,
+        "min_latency_ms": 0.6012000376358628,
+        "max_latency_ms": 3.476699930615723
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 1.0679349999991246,
-        "throughput": 7491.092622684488,
-        "avg_latency_ms": 522.7009336000638,
-        "p50_latency_ms": 529.2520000002696,
-        "p95_latency_ms": 538.9338350021717,
-        "p99_latency_ms": 543.8029740023921,
-        "min_latency_ms": 72.90089999878546,
-        "max_latency_ms": 561.678000005486,
+        "elapsed_sec": 1.6330460999161005,
+        "throughput": 4898.820676532652,
+        "avg_latency_ms": 762.0952529753995,
+        "p50_latency_ms": 756.532299972605,
+        "p95_latency_ms": 1002.5731900124811,
+        "p99_latency_ms": 1021.1758490023204,
+        "min_latency_ms": 122.36949999351054,
+        "max_latency_ms": 1051.2262999545783,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 1.1033561031353987
+      "mt_speedup_vs_st": 0.8582867930704563
     },
     "16": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 0.8256355999983498,
-        "throughput": 9689.504667696003,
-        "avg_latency_ms": 1.2057479874911223,
-        "p50_latency_ms": 1.1778000007325318,
-        "p95_latency_ms": 1.7912399969645771,
-        "p99_latency_ms": 2.082004999028868,
-        "min_latency_ms": 0.5952999999863096,
-        "max_latency_ms": 2.6342999990447424
+        "elapsed_sec": 1.0253554000519216,
+        "throughput": 7802.172787693808,
+        "avg_latency_ms": 1.513122311400366,
+        "p50_latency_ms": 1.3267999747768044,
+        "p95_latency_ms": 2.6813349279109384,
+        "p99_latency_ms": 3.6824949842412047,
+        "min_latency_ms": 0.6651999428868294,
+        "max_latency_ms": 7.432500016875565
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.8160119999956805,
-        "throughput": 9803.777395482355,
-        "avg_latency_ms": 392.1383115624667,
-        "p50_latency_ms": 394.4766500026162,
-        "p95_latency_ms": 507.8854349994799,
-        "p99_latency_ms": 517.6217090020509,
-        "min_latency_ms": 74.77140000264626,
-        "max_latency_ms": 531.8065999963437,
+        "elapsed_sec": 0.9488839999539778,
+        "throughput": 8430.9567875399,
+        "avg_latency_ms": 433.0976850989391,
+        "p50_latency_ms": 429.1422499809414,
+        "p95_latency_ms": 613.3018049760722,
+        "p99_latency_ms": 630.8812620781828,
+        "min_latency_ms": 52.66380007378757,
+        "max_latency_ms": 636.2203999888152,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 1.0117934540211666
+      "mt_speedup_vs_st": 1.0805908837135547
     },
     "32": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 0.6215732999989996,
-        "throughput": 12870.565708039383,
-        "avg_latency_ms": 1.6438461749658018,
-        "p50_latency_ms": 1.6236500014201738,
-        "p95_latency_ms": 2.5012749971210715,
-        "p99_latency_ms": 2.794608997282922,
-        "min_latency_ms": 0.665100000333041,
-        "max_latency_ms": 3.6851000040769577
+        "elapsed_sec": 0.8077785999048501,
+        "throughput": 9903.703813077414,
+        "avg_latency_ms": 2.1222280614310876,
+        "p50_latency_ms": 1.8962500034831464,
+        "p95_latency_ms": 3.964505030307919,
+        "p99_latency_ms": 4.471509055001661,
+        "min_latency_ms": 0.750000006519258,
+        "max_latency_ms": 6.079900078475475
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.6822689000036917,
-        "throughput": 11725.582098138597,
-        "avg_latency_ms": 328.8991041250338,
-        "p50_latency_ms": 335.86294999622623,
-        "p95_latency_ms": 488.18641999860114,
-        "p99_latency_ms": 503.10538599696883,
-        "min_latency_ms": 82.58410000416916,
-        "max_latency_ms": 520.8629000044311,
+        "elapsed_sec": 0.7915225001052022,
+        "throughput": 10107.103713333116,
+        "avg_latency_ms": 362.12545499454427,
+        "p50_latency_ms": 364.51635003322735,
+        "p95_latency_ms": 556.0808949870988,
+        "p99_latency_ms": 577.3247759568039,
+        "min_latency_ms": 94.28979991935194,
+        "max_latency_ms": 581.0277999844402,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 0.9110385948936501
+      "mt_speedup_vs_st": 1.020537760831167
     },
     "64": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 0.5419819999951869,
-        "throughput": 14760.63780729073,
-        "avg_latency_ms": 2.6608345375589124,
-        "p50_latency_ms": 2.646099997946294,
-        "p95_latency_ms": 4.223004996674717,
-        "p99_latency_ms": 4.604238995889319,
-        "min_latency_ms": 0.8284000068670139,
-        "max_latency_ms": 5.505699999048375
+        "elapsed_sec": 0.5449501000111923,
+        "throughput": 14680.243199947472,
+        "avg_latency_ms": 2.736556301766541,
+        "p50_latency_ms": 2.6255000266246498,
+        "p95_latency_ms": 4.635680018691345,
+        "p99_latency_ms": 7.0755590917542595,
+        "min_latency_ms": 0.9434000821784139,
+        "max_latency_ms": 8.445599931292236
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.5913478000002215,
-        "throughput": 13528.417624952699,
-        "avg_latency_ms": 255.39253717506472,
-        "p50_latency_ms": 248.09930000265012,
-        "p95_latency_ms": 430.1159199949324,
-        "p99_latency_ms": 444.9673480007914,
-        "min_latency_ms": 70.77669999853242,
-        "max_latency_ms": 467.6584999979241,
+        "elapsed_sec": 0.728814100031741,
+        "throughput": 10976.736042361952,
+        "avg_latency_ms": 253.7706941895012,
+        "p50_latency_ms": 259.9876999738626,
+        "p95_latency_ms": 432.9417549539357,
+        "p99_latency_ms": 455.83052398986183,
+        "min_latency_ms": 55.830299970693886,
+        "max_latency_ms": 473.8999999826774,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 0.91651985514275
+      "mt_speedup_vs_st": 0.7477216755102005
     },
     "128": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 0.4954213000019081,
-        "throughput": 16147.872527824678,
-        "avg_latency_ms": 4.510078150467052,
-        "p50_latency_ms": 4.497249999985797,
-        "p95_latency_ms": 7.528979994458495,
-        "p99_latency_ms": 8.174725000426406,
-        "min_latency_ms": 0.8852999962982722,
-        "max_latency_ms": 9.818600003200117
+        "elapsed_sec": 0.522968600038439,
+        "throughput": 15297.285533800667,
+        "avg_latency_ms": 4.832830107930931,
+        "p50_latency_ms": 4.500399983953685,
+        "p95_latency_ms": 10.447324923006814,
+        "p99_latency_ms": 13.501405011629686,
+        "min_latency_ms": 1.0721000144258142,
+        "max_latency_ms": 15.96719992812723
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.5715892999942298,
-        "throughput": 13996.063257448592,
-        "avg_latency_ms": 196.15821082491402,
-        "p50_latency_ms": 183.37255000369623,
-        "p95_latency_ms": 364.57337500251015,
-        "p99_latency_ms": 380.1530470016587,
-        "min_latency_ms": 34.04980000050273,
-        "max_latency_ms": 397.461900000053,
+        "elapsed_sec": 0.7253076999913901,
+        "throughput": 11029.801558834914,
+        "avg_latency_ms": 236.5943369516026,
+        "p50_latency_ms": 253.35885002277792,
+        "p95_latency_ms": 376.4014999440405,
+        "p99_latency_ms": 388.26178304268984,
+        "min_latency_ms": 25.670399889349937,
+        "max_latency_ms": 449.4243999943137,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 0.8667434817392652
+      "mt_speedup_vs_st": 0.7210299849907109
     },
     "256": {
       "single_thread": {
         "predictions": 8000,
-        "elapsed_sec": 0.459375699996599,
-        "throughput": 17414.939449472902,
-        "avg_latency_ms": 7.889459124681707,
-        "p50_latency_ms": 7.841049999115057,
-        "p95_latency_ms": 13.83459500138997,
-        "p99_latency_ms": 15.186470999979067,
-        "min_latency_ms": 0.9976000001188368,
-        "max_latency_ms": 17.634799994993955
+        "elapsed_sec": 0.4864738000323996,
+        "throughput": 16444.873289100447,
+        "avg_latency_ms": 8.40981553941674,
+        "p50_latency_ms": 7.821500010322779,
+        "p95_latency_ms": 18.766155047342178,
+        "p99_latency_ms": 24.46625203243457,
+        "min_latency_ms": 1.213699928484857,
+        "max_latency_ms": 26.452100020833313
       },
       "multi_thread": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.5575516000026255,
-        "throughput": 14348.447748983823,
-        "avg_latency_ms": 208.11502536228454,
-        "p50_latency_ms": 214.61859999908484,
-        "p95_latency_ms": 357.22599999426166,
-        "p99_latency_ms": 385.49810599950433,
-        "min_latency_ms": 18.851000000722706,
-        "max_latency_ms": 389.9588999993284,
+        "elapsed_sec": 0.6075832999777049,
+        "throughput": 13166.918841076702,
+        "avg_latency_ms": 210.23219553289528,
+        "p50_latency_ms": 193.5562000144273,
+        "p95_latency_ms": 371.77807001862675,
+        "p99_latency_ms": 382.6015020185151,
+        "min_latency_ms": 25.093300035223365,
+        "max_latency_ms": 435.379600035958,
         "dropped_packets": 0.0
       },
-      "mt_speedup_vs_st": 0.8239160285692585
+      "mt_speedup_vs_st": 0.8006701304170977
     }
   },
   "test5_scalability": {
     "baseline_single_thread": {
       "predictions": 8000,
-      "elapsed_sec": 0.5160517000040272,
-      "throughput": 15502.32273227192,
-      "avg_latency_ms": 4.67852502471942,
-      "p50_latency_ms": 4.671350001444807,
-      "p95_latency_ms": 7.781145000990363,
-      "p99_latency_ms": 8.274711997873965,
-      "min_latency_ms": 1.058900001225993,
-      "max_latency_ms": 9.546000001137145
+      "elapsed_sec": 0.4773684999672696,
+      "throughput": 16758.54188231631,
+      "avg_latency_ms": 8.287106125208084,
+      "p50_latency_ms": 7.728650001809001,
+      "p95_latency_ms": 18.42424999922513,
+      "p99_latency_ms": 24.38810801715591,
+      "min_latency_ms": 1.2181999627500772,
+      "max_latency_ms": 26.655999943614006
     },
     "multi_thread": {
       "1": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.6264577999972971,
-        "throughput": 12770.213731929774,
-        "avg_latency_ms": 252.23775345071496,
-        "p50_latency_ms": 249.132599994482,
-        "p95_latency_ms": 446.9300350021512,
-        "p99_latency_ms": 466.1512059997767,
-        "min_latency_ms": 38.65909999876749,
-        "max_latency_ms": 470.5781000011484,
+        "elapsed_sec": 0.7539940000278875,
+        "throughput": 10610.164006217701,
+        "avg_latency_ms": 341.71232821806916,
+        "p50_latency_ms": 358.59514999901876,
+        "p95_latency_ms": 576.2736549717373,
+        "p99_latency_ms": 591.4272230025381,
+        "min_latency_ms": 37.48129995074123,
+        "max_latency_ms": 595.6243999535218,
         "dropped_packets": 0.0,
-        "speedup": 0.8237613132221416,
-        "efficiency": 0.8237613132221416
+        "speedup": 0.6331197595068575,
+        "efficiency": 0.6331197595068575
       },
       "2": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.5705078999963007,
-        "throughput": 14022.592851127694,
-        "avg_latency_ms": 226.37378545025604,
-        "p50_latency_ms": 215.5042999984289,
-        "p95_latency_ms": 396.7452150038298,
-        "p99_latency_ms": 419.6089360067709,
-        "min_latency_ms": 37.44050000386778,
-        "max_latency_ms": 424.3676000041887,
+        "elapsed_sec": 1.0304846999933943,
+        "throughput": 7763.337000589414,
+        "avg_latency_ms": 122.93610405287473,
+        "p50_latency_ms": 120.17424998339266,
+        "p95_latency_ms": 200.91526001342564,
+        "p99_latency_ms": 261.56440592138097,
+        "min_latency_ms": 5.6825000792741776,
+        "max_latency_ms": 314.33279998600483,
         "dropped_packets": 0.0,
-        "speedup": 0.9045478599110957,
-        "efficiency": 0.4522739299555478
+        "speedup": 0.46324656733897135,
+        "efficiency": 0.23162328366948567
       },
       "4": {
         "predictions": 8000.0,
-        "elapsed_sec": 0.5711776999960421,
-        "throughput": 14006.149049683549,
-        "avg_latency_ms": 155.4131111250199,
-        "p50_latency_ms": 174.24590000518947,
-        "p95_latency_ms": 220.3821600003721,
-        "p99_latency_ms": 265.0824949973321,
-        "min_latency_ms": 16.908699995838106,
-        "max_latency_ms": 292.78920000069775,
+        "elapsed_sec": 0.689714299980551,
+        "throughput": 11599.005559585454,
+        "avg_latency_ms": 80.31680041897926,
+        "p50_latency_ms": 78.86815001256764,
+        "p95_latency_ms": 143.48521000356413,
+        "p99_latency_ms": 176.5000289399177,
+        "min_latency_ms": 4.080499988049269,
+        "max_latency_ms": 182.5534999370575,
         "dropped_packets": 0.0,
-        "speedup": 0.9034871284498732,
-        "efficiency": 0.2258717821124683
+        "speedup": 0.6921249856364161,
+        "efficiency": 0.17303124640910403
       }
     },
     "multi_process": {
       "1": {
         "predictions": 8000.0,
-        "elapsed_sec": 1.848996699998679,
-        "throughput": 4326.670783136452,
-        "avg_latency_ms": 0.006697150003674324,
-        "p50_latency_ms": 0.006039062498075509,
-        "p95_latency_ms": 0.009454687528887007,
-        "p99_latency_ms": 0.028111718734180613,
-        "min_latency_ms": 0.0050476562591939,
-        "max_latency_ms": 0.028111718734180613,
-        "speedup": 0.27909822662441525,
-        "efficiency": 0.27909822662441525
+        "elapsed_sec": 1.319547999999486,
+        "throughput": 6062.682069923274,
+        "avg_latency_ms": 0.0040947000234154984,
+        "p50_latency_ms": 0.0038695311559422407,
+        "p95_latency_ms": 0.0058050782172358595,
+        "p99_latency_ms": 0.006247656529012602,
+        "min_latency_ms": 0.0032035159165388905,
+        "max_latency_ms": 0.011204687325516716,
+        "speedup": 0.36176668068721685,
+        "efficiency": 0.36176668068721685
       },
       "2": {
         "predictions": 8000.0,
-        "elapsed_sec": 1.6229983999946853,
-        "throughput": 4929.148420618404,
-        "avg_latency_ms": 0.008080987501671189,
-        "p50_latency_ms": 0.006783203133409188,
-        "p95_latency_ms": 0.012825781254832691,
-        "p99_latency_ms": 0.03684921875901637,
-        "min_latency_ms": 0.005355468715606548,
-        "max_latency_ms": 0.03684921875901637,
-        "speedup": 0.31796192775403664,
-        "efficiency": 0.15898096387701832
+        "elapsed_sec": 1.3046824000775814,
+        "throughput": 6131.760495523117,
+        "avg_latency_ms": 0.005177575032575987,
+        "p50_latency_ms": 0.004117773414691328,
+        "p95_latency_ms": 0.011648828149191104,
+        "p99_latency_ms": 0.011648828149191104,
+        "min_latency_ms": 0.0036804690353164915,
+        "max_latency_ms": 0.011648828149191104,
+        "speedup": 0.3658886637383041,
+        "efficiency": 0.18294433186915204
       },
       "4": {
         "predictions": 8000.0,
-        "elapsed_sec": 2.0873409999985597,
-        "throughput": 3832.62725161127,
-        "avg_latency_ms": 0.011162799996782269,
-        "p50_latency_ms": 0.009462304703333757,
-        "p95_latency_ms": 0.02100624999457068,
-        "p99_latency_ms": 0.022809999973105732,
-        "min_latency_ms": 0.006643749998147541,
-        "max_latency_ms": 0.022809999973105732,
-        "speedup": 0.2472292260844698,
-        "efficiency": 0.06180730652111745
+        "elapsed_sec": 1.4481709999963641,
+        "throughput": 5524.209502897162,
+        "avg_latency_ms": 0.006449024978792295,
+        "p50_latency_ms": 0.006063086061658396,
+        "p95_latency_ms": 0.009350480328206547,
+        "p99_latency_ms": 0.009350480328206547,
+        "min_latency_ms": 0.004141797035117634,
+        "max_latency_ms": 0.009350480328206547,
+        "speedup": 0.3296354504878693,
+        "efficiency": 0.08240886262196732
       }
     }
   },
   "test6_cpu_gpu": {
     "cpu": {
       "32": {
-        "throughput": 66901.17759473782,
-        "time_sec": 0.07473709999976563
+        "throughput": 45439.963372169455,
+        "time_sec": 0.11003529996378347
       },
       "64": {
-        "throughput": 114307.92267823251,
-        "time_sec": 0.04374150000148802
+        "throughput": 82705.5294802003,
+        "time_sec": 0.060455449973233044
       },
       "128": {
-        "throughput": 190983.29660528482,
-        "time_sec": 0.026180299999396084
+        "throughput": 123529.07751885267,
+        "time_sec": 0.04047629999695346
       },
       "256": {
-        "throughput": 293177.7536705784,
-        "time_sec": 0.01705450000008568
+        "throughput": 264715.5367831742,
+        "time_sec": 0.018888199992943555
       }
     },
     "gpu": {
       "32": {
-        "throughput": 14002.399731138976,
-        "time_sec": 0.3570816500032379
+        "throughput": 13908.372200753507,
+        "time_sec": 0.3594956999877468
       },
       "64": {
-        "throughput": 40884.57874534148,
-        "time_sec": 0.12229550000120071
+        "throughput": 38814.25555257799,
+        "time_sec": 0.12881864997325465
       },
       "128": {
-        "throughput": 80537.34516603057,
-        "time_sec": 0.06208300000071176
+        "throughput": 69530.10171483048,
+        "time_sec": 0.07191129995044321
       },
       "256": {
-        "throughput": 171226.71959923537,
-        "time_sec": 0.029201049997936934
+        "throughput": 133673.57712139294,
+        "time_sec": 0.037404550006613135
       }
     }
   },
   "training_metrics": {
     "model_type": "xgboost",
-    "train_time": 2.930180072784424,
-    "train_samples": 2262300,
-    "test_samples": 565576,
+    "train_time": 2.1182074546813965,
+    "train_samples": 639467,
+    "test_samples": 159867,
     "metrics": {
-      "accuracy": 0.9920753355870829,
-      "precision": 0.967232616929523,
-      "recall": 0.9933878951765773,
-      "f1": 0.9801357963409445,
-      "throughput": 3539621.4757499434
+      "accuracy": 0.9946518043123346,
+      "precision": 0.9778054544293288,
+      "recall": 0.9948016504759739,
+      "f1": 0.9862303319214726,
+      "throughput": 1986010.5902904684
     },
     "batch_benchmark": {
       "1": {
-        "throughput": 1184.4910136011733,
-        "latency_per_sample": 0.8442444801330568
+        "throughput": 668.6986575021946,
+        "latency_per_sample": 1.4954419136047363
       },
       "8": {
-        "throughput": 1345.2745324615769,
-        "latency_per_sample": 0.743342697620392
+        "throughput": 845.7877594605943,
+        "latency_per_sample": 1.1823297142982483
       },
       "16": {
-        "throughput": 11721.263598406747,
-        "latency_per_sample": 0.0853150337934494
+        "throughput": 1245.8589757332416,
+        "latency_per_sample": 0.8026590645313263
       },
       "32": {
-        "throughput": 32759.88201165971,
-        "latency_per_sample": 0.03052514046430588
+        "throughput": 17607.095640602423,
+        "latency_per_sample": 0.056795284152030945
       },
       "64": {
-        "throughput": 66728.66077308018,
-        "latency_per_sample": 0.014986064285039902
+        "throughput": 30621.25630724258,
+        "latency_per_sample": 0.03265705332159996
       },
       "128": {
-        "throughput": 132521.4206848784,
-        "latency_per_sample": 0.0075459498912096015
+        "throughput": 71237.76004883017,
+        "latency_per_sample": 0.014037499204277992
       },
       "256": {
-        "throughput": 252104.03083076747,
-        "latency_per_sample": 0.003966616466641426
+        "throughput": 158492.32634500222,
+        "latency_per_sample": 0.0063094537323101964
       },
       "512": {
-        "throughput": 423891.5271580832,
-        "latency_per_sample": 0.0023590940982103348
+        "throughput": 306324.1725435405,
+        "latency_per_sample": 0.003264515469662654
       }
     }
   }

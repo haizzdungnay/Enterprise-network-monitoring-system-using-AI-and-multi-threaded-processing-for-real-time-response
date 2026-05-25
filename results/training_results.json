@@ -1,47 +1,47 @@
 {
   "model_type": "xgboost",
-  "train_time": 2.930180072784424,
-  "train_samples": 2262300,
-  "test_samples": 565576,
+  "train_time": 2.1182074546813965,
+  "train_samples": 639467,
+  "test_samples": 159867,
   "metrics": {
-    "accuracy": 0.9920753355870829,
-    "precision": 0.967232616929523,
-    "recall": 0.9933878951765773,
-    "f1": 0.9801357963409445,
-    "throughput": 3539621.4757499434
+    "accuracy": 0.9946518043123346,
+    "precision": 0.9778054544293288,
+    "recall": 0.9948016504759739,
+    "f1": 0.9862303319214726,
+    "throughput": 1986010.5902904684
   },
   "batch_benchmark": {
     "1": {
-      "throughput": 1184.4910136011733,
-      "latency_per_sample": 0.8442444801330568
+      "throughput": 668.6986575021946,
+      "latency_per_sample": 1.4954419136047363
     },
     "8": {
-      "throughput": 1345.2745324615769,
-      "latency_per_sample": 0.743342697620392
+      "throughput": 845.7877594605943,
+      "latency_per_sample": 1.1823297142982483
     },
     "16": {
-      "throughput": 11721.263598406747,
-      "latency_per_sample": 0.0853150337934494
+      "throughput": 1245.8589757332416,
+      "latency_per_sample": 0.8026590645313263
     },
     "32": {
-      "throughput": 32759.88201165971,
-      "latency_per_sample": 0.03052514046430588
+      "throughput": 17607.095640602423,
+      "latency_per_sample": 0.056795284152030945
     },
     "64": {
-      "throughput": 66728.66077308018,
-      "latency_per_sample": 0.014986064285039902
+      "throughput": 30621.25630724258,
+      "latency_per_sample": 0.03265705332159996
     },
     "128": {
-      "throughput": 132521.4206848784,
-      "latency_per_sample": 0.0075459498912096015
+      "throughput": 71237.76004883017,
+      "latency_per_sample": 0.014037499204277992
     },
     "256": {
-      "throughput": 252104.03083076747,
-      "latency_per_sample": 0.003966616466641426
+      "throughput": 158492.32634500222,
+      "latency_per_sample": 0.0063094537323101964
     },
     "512": {
-      "throughput": 423891.5271580832,
-      "latency_per_sample": 0.0023590940982103348
+      "throughput": 306324.1725435405,
+      "latency_per_sample": 0.003264515469662654
     }
   }
 }

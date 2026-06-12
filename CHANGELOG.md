@@ -5,6 +5,57 @@ Format: `[FILE] Mô tả thay đổi`
 
 ---
 
+## [2026-06-12c] — Sửa dữ liệu ảo trên dashboard + tối ưu FE-BE
+
+### Vấn đề
+Sau khi kiểm tra kỹ bằng 4 agent song song, phát hiện nhiều bug nghiêm trọng:
+
+#### Vấn đề 1: Simulation mode làm ô nhiễm dữ liệu thật
+`_simulation_loop()` sinh IP giả (`10.0.x.x`) từ `_SRC_IPS_POOL`, tích lũy vào
+`top_source_ips`, `top_target_ports`, `top_target_ips` và `heatmap`. Nếu chạy dashboard
+mà không có `--live`, các IP giả hiện trên dashboard → dễ gây hiểu nhầm.
+
+#### Vấn đề 2: `/api/alert/<idx>` trả dữ liệu random
+Alert detail dùng `np.random.*` để sinh flow features → alert modal hiện số ngẫu
+nhiên, không có ý nghĩa.
+
+#### Vấn đề 3: Frontend hardcoded giá trị ban đầu
+- Protocol bars có `width:60%/25%/15%` cứng trong HTML → hiện sai trước khi API load
+- Attack types donut khởi tạo `[1,1,1,1,1]` → hiện donut đều giả
+- Sliders có `value=70/64` cứng → khác với config thực tế
+- `ai_precision` được backend trả về nhưng frontend không hiển thị
+
+### Thay đổi
+
+#### `dashboard_server.py`
+- Thêm tham số `simulating=False` vào `_ingest_flows()`. Khi `simulating=True`,
+  **không cập nhật** `top_source_ips`, `top_target_ports`, `top_target_ips`, `heatmap`
+  → chỉ timeline + AI metrics là thật.
+- `_simulation_loop()` truyền `simulating=True`; `_live_loop()` truyền `simulating=False`.
+- Thêm `'features': X[i].tolist()` vào mỗi alert entry → lưu vector 18 features thật.
+- Sửa `api_alert_detail()` đọc vector features thật thay vì random.
+- Thêm `queue_overflow_count` vào state và `/api/state` → expose số flow bị drop khi
+  queue đầy.
+- Thêm `_simulating` global flag để track chế độ.
+- Sửa `_prepare_batch_for_scaler()`: thay padding thầy bằng `raise ValueError` khi
+  feature count không khớp.
+- Sửa `_pps_rate()`: local copy `seen = capture.packets_seen` để tránh cross-thread
+  read race.
+
+#### `dashboard_static/index.html`
+- **Sửa** protocol bars: `width:60%/25%/15%` → `width:0%` (xóa hardcoded)
+- **Sửa** attack types donut: `[1,1,1,1,1]` → `[0,0,0,0,0]` (xóa mock init)
+- **Sửa** sliders: `value="70/64"` → `value="0"` với label `--` (chờ API)
+- **Thêm** `aiPrecision` box trong AI perf card (backend đã trả về nhưng FE chưa hiển thị)
+- Cập nhật JS `refresh()` để ghi `ai_precision`
+
+#### `README.md`
+- Thêm mục "Hai chế độ chạy" (Simulation vs Live) với badge và bảng so sánh
+- Thêm mục "Giới hạn cần biết": model binary + heuristic attack type + simulation data isolation
+- Cập nhật hướng dẫn run commands với `sudo` cho `--live`
+
+---
+
 ## [2026-06-12b] — Dashboard hiển thị traffic THẬT từ NIC (hết dữ liệu mẫu)
 
 ### Vấn đề

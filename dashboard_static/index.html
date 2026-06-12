@@ -315,9 +315,9 @@ a { color: var(--blue); text-decoration: none; }
       </div>
       <div class="section-title" style="margin-top:14px">Protocol Split</div>
       <div>
-        <div class="bar-row"><span class="bar-label">TCP</span><div class="bar-track"><div class="bar-fill" id="pTCP" style="width:60%;background:var(--purple)"></div></div><span class="bar-val" id="vTCP">0</span></div>
-        <div class="bar-row"><span class="bar-label">UDP</span><div class="bar-track"><div class="bar-fill" id="pUDP" style="width:25%;background:var(--blue)"></div></div><span class="bar-val" id="vUDP">0</span></div>
-        <div class="bar-row"><span class="bar-label">ICMP</span><div class="bar-track"><div class="bar-fill" id="pICMP" style="width:15%;background:var(--cyan)"></div></div><span class="bar-val" id="vICMP">0</span></div>
+        <div class="bar-row"><span class="bar-label">TCP</span><div class="bar-track"><div class="bar-fill" id="pTCP" style="width:0%;background:var(--purple)"></div></div><span class="bar-val" id="vTCP">0</span></div>
+        <div class="bar-row"><span class="bar-label">UDP</span><div class="bar-track"><div class="bar-fill" id="pUDP" style="width:0%;background:var(--blue)"></div></div><span class="bar-val" id="vUDP">0</span></div>
+        <div class="bar-row"><span class="bar-label">ICMP</span><div class="bar-track"><div class="bar-fill" id="pICMP" style="width:0%;background:var(--cyan)"></div></div><span class="bar-val" id="vICMP">0</span></div>
       </div>
     </div>
     <div class="card">
@@ -358,18 +358,18 @@ a { color: var(--blue); text-decoration: none; }
       <div class="ai-grid">
         <div class="ai-box"><div class="label">Accuracy</div><div class="val" id="aiAcc">--</div></div>
         <div class="ai-box"><div class="label">F1 Score</div><div class="val" id="aiF1">--</div></div>
-        <div class="ai-box"><div class="label">Inference</div><div class="val" id="aiInf">--</div></div>
+        <div class="ai-box"><div class="label">Precision</div><div class="val" id="aiPrec">--</div></div>
         <div class="ai-box"><div class="label">Recall</div><div class="val" id="aiRec">--</div></div>
       </div>
       <div class="ctrl-row">
         <span>Alert threshold</span>
-        <input type="range" min="30" max="95" value="70" step="5" id="thrSlider">
-        <span class="ctrl-val" id="thrVal">0.70</span>
+        <input type="range" min="30" max="95" value="0" step="5" id="thrSlider">
+        <span class="ctrl-val" id="thrVal">--</span>
       </div>
       <div class="ctrl-row">
         <span>Batch size</span>
-        <input type="range" min="8" max="256" value="64" step="8" id="bsSlider">
-        <span class="ctrl-val" id="bsVal">64</span>
+        <input type="range" min="8" max="256" value="0" step="8" id="bsSlider">
+        <span class="ctrl-val" id="bsVal">--</span>
       </div>
     </div>
   </div>
@@ -483,7 +483,7 @@ const chartAT = new Chart(document.getElementById('chartAttackTypes'), {
   type: 'doughnut',
   data: {
     labels: ['DDoS', 'PortScan', 'BruteForce', 'WebAttack', 'Infiltration'],
-    datasets: [{ data: [1,1,1,1,1], backgroundColor: ['#f85149','#d29922','#bc8cff','#58a6ff','#d18616'], borderWidth: 0 }]
+    datasets: [{ data: [0,0,0,0,0], backgroundColor: ['#f85149','#d29922','#bc8cff','#58a6ff','#d18616'], borderWidth: 0 }]
   },
   options: { ...chartOpts, cutout: '55%',
     plugins: { legend: { display: true, position: 'bottom', labels: { color: tickColor, font: { size: 9 }, boxWidth: 10, padding: 6 } } }
@@ -800,6 +800,7 @@ function refresh() {
       // AI model metrics
       document.getElementById('aiAcc').textContent = d.ai_accuracy ? d.ai_accuracy.toFixed(1) + '%' : '--';
       document.getElementById('aiF1').textContent = d.ai_f1 ? d.ai_f1.toFixed(1) + '%' : '--';
+      document.getElementById('aiPrec').textContent = d.ai_precision ? d.ai_precision.toFixed(1) + '%' : '--';
       document.getElementById('aiInf').innerHTML = d.ai_inference_ms ? d.ai_inference_ms + '<span style="font-size:11px">ms</span>' : '--';
       document.getElementById('aiRec').textContent = d.ai_recall ? d.ai_recall.toFixed(1) + '%' : '--';
 

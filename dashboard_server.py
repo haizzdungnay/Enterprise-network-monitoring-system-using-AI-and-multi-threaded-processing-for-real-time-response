@@ -87,6 +87,9 @@ state = {
     # Heatmap 7x24
     'heatmap': [[0]*24 for _ in range(7)],
 
+    # Queue health
+    'queue_overflow_count': 0,
+
     # Controls
     'alert_threshold': config.ALERT_THRESHOLD,
     'batch_size': config.BATCH_SIZE,
@@ -102,6 +105,7 @@ _model = None
 _scaler = None
 _start_time = time.time()
 _running = True
+_simulating = False
 
 # ═══════════════════════════════════════════════════════════════
 # LOAD MODEL & TRAINING METRICS
@@ -138,10 +142,10 @@ def _prepare_batch_for_scaler(X_batch, scaler):
         return X_batch
     if X_batch.shape[1] == expected:
         return X_batch
-    if X_batch.shape[1] < expected:
-        pad_width = expected - X_batch.shape[1]
-        return np.pad(X_batch, ((0, 0), (0, pad_width)), mode='constant')
-    return X_batch[:, :expected]
+    raise ValueError(
+        f"Feature count mismatch: model expects {expected} features, "
+        f"got {X_batch.shape[1]}. Check FlowAggregator output vs dataset training."
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -180,11 +184,12 @@ def _classify_attack_type(features, meta):
     return 'Infiltration'
 
 
-def _ingest_flows(feats, times, metas, packets_per_sec, queue_fill_pct):
+def _ingest_flows(feats, times, metas, packets_per_sec, queue_fill_pct, simulating=False):
     """
     Chạy AI inference thật trên 1 batch flow, cập nhật toàn bộ state.
     feats/times/metas là list song song. meta phải có
     src_ip/dst_ip/dst_port/protocol (từ FlowAggregator hoặc simulated packet).
+    simulating: nếu True, bỏ qua tracking IP/heatmap (dữ liệu giả).
     """
     if not feats:
         return
@@ -242,16 +247,19 @@ def _ingest_flows(feats, times, metas, packets_per_sec, queue_fill_pct):
                 dst_port = int(meta.get('dst_port', 80))
                 dst_ip = meta.get('dst_ip', np.random.choice(_DST_IPS_POOL))
 
-                state['top_source_ips'][src_ip] = state['top_source_ips'].get(src_ip, 0) + 1
-                state['top_target_ports'][str(dst_port)] = state['top_target_ports'].get(str(dst_port), 0) + 1
-                state['top_target_ips'][dst_ip] = state['top_target_ips'].get(dst_ip, 0) + 1
+                # Skip IP/heatmap tracking in simulation mode (fake data)
+                if not simulating:
+                    state['top_source_ips'][src_ip] = state['top_source_ips'].get(src_ip, 0) + 1
+                    state['top_target_ports'][str(dst_port)] = state['top_target_ports'].get(str(dst_port), 0) + 1
+                    state['top_target_ips'][dst_ip] = state['top_target_ips'].get(dst_ip, 0) + 1
 
-                # Heatmap
-                dt = datetime.now()
-                state['heatmap'][dt.weekday()][dt.hour] += 1
+                    # Heatmap
+                    dt = datetime.now()
+                    state['heatmap'][dt.weekday()][dt.hour] += 1
 
-                # Recent alerts (keep 50)
+                # Recent alerts (keep 50) - store real feature vector for detail view
                 proto_name = {6: 'TCP', 17: 'UDP', 1: 'ICMP'}.get(proto, 'TCP')
+                dt = datetime.now()
                 alert_entry = {
                     'time': dt.strftime('%H:%M:%S'),
                     'src_ip': src_ip,
@@ -261,6 +269,7 @@ def _ingest_flows(feats, times, metas, packets_per_sec, queue_fill_pct):
                     'type': atk_type,
                     'confidence': round(conf * 100, 1),
                     'severity': sev,
+                    'features': X[i].tolist(),
                 }
                 state['recent_alerts'].insert(0, alert_entry)
                 if len(state['recent_alerts']) > 50:
@@ -318,6 +327,8 @@ def _ingest_flows(feats, times, metas, packets_per_sec, queue_fill_pct):
 
 def _simulation_loop():
     """Background thread: sinh traffic giả, chạy AI inference THẬT, cập nhật state."""
+    global _simulating
+    _simulating = True
     batch_buf, batch_times, batch_meta = [], [], []
 
     while _running:
@@ -340,7 +351,8 @@ def _simulation_loop():
 
         _ingest_flows(X, times, metas,
                       packets_per_sec=n_flows / 0.15,
-                      queue_fill_pct=round(np.random.uniform(5, 45), 1))
+                      queue_fill_pct=round(np.random.uniform(5, 45), 1),
+                      simulating=True)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -357,8 +369,9 @@ def _pps_rate(capture):
     dt = now - _last_pkt_time
     if dt < 0.5:
         return state.get('packets_per_sec', 0.0)
-    rate = (capture.packets_seen - _last_pkt_count) / dt
-    _last_pkt_count = capture.packets_seen
+    seen = capture.packets_seen  # local copy to avoid cross-thread read race
+    rate = (seen - _last_pkt_count) / dt
+    _last_pkt_count = seen
     _last_pkt_time = now
     return round(rate, 0)
 
@@ -399,9 +412,12 @@ def _live_loop(iface):
             qfill = round(pkt_queue.qsize() / config.PACKET_QUEUE_SIZE * 100, 1)
             _ingest_flows(batch_feats, batch_times, batch_metas,
                           packets_per_sec=_pps_rate(capture),
-                          queue_fill_pct=qfill)
+                          queue_fill_pct=qfill,
+                          simulating=False)
             batch_feats, batch_times, batch_metas = [], [], []
             last_flush = now
+            # Expose queue overflow count so dashboard can warn operators
+            state['queue_overflow_count'] = capture.packets_dropped
 
     capture.stop()
 
@@ -456,6 +472,7 @@ def api_state():
             'false_positive_rate': state['false_positive_rate'],
             'confidence_histogram': state['confidence_histogram'],
             'heatmap': state['heatmap'],
+            'queue_overflow_count': state['queue_overflow_count'],
             'alert_threshold': state['alert_threshold'],
             'batch_size': state['batch_size'],
         }
@@ -583,23 +600,45 @@ def api_alert_detail(idx):
     with _lock:
         if 0 <= idx < len(state['recent_alerts']):
             alert = state['recent_alerts'][idx]
-            # Enrich with simulated flow details
             detail = dict(alert)
+
+            # Use real feature vector stored with the alert (18-element vector)
+            feats = np.array(alert.get('features', [0]*18))
+            # Pad if shorter than expected
+            if len(feats) < 18:
+                feats = np.pad(feats, (0, 18 - len(feats)), mode='constant')
+
+            # Feats are already in the right units from FlowAggregator:
+            # duration (feats[0]) and iat (feats[15,16]) are in microseconds.
+            duration_us = max(1, float(feats[0]))
+            fwd_pkts = max(1, int(feats[1]))
+            bwd_pkts = max(0, int(feats[2]))
+            bytes_per_sec = max(0, float(feats[3]))
+            pkts_per_sec = max(0, float(feats[4]))
+            fwd_pkt_len = max(0, float(feats[6]))
+            bwd_pkt_len = max(0, float(feats[7]))
+            syn_cnt = max(0, int(feats[8]))
+            ack_cnt = max(0, int(feats[12]))
+            rst_cnt = max(0, int(feats[10]))
+            iat_mean = max(1, float(feats[15]))
+            iat_std = max(0, float(feats[16]))
+
             detail['flow_features'] = {
-                'Flow Duration': f"{np.random.exponential(500000):.0f} us",
-                'Total Fwd Packets': str(np.random.randint(1, 60)),
-                'Total Bwd Packets': str(np.random.randint(0, 20)),
-                'Flow Bytes/s': f"{np.random.lognormal(10, 2):.0f}",
-                'Flow Packets/s': f"{np.random.lognormal(5, 1):.0f}",
-                'Fwd Pkt Len Mean': f"{np.random.normal(120, 60):.1f}",
-                'Bwd Pkt Len Mean': f"{np.random.normal(80, 40):.1f}",
-                'SYN Flag Count': str(np.random.randint(0, 5)),
-                'ACK Flag Count': str(np.random.randint(0, 20)),
-                'RST Flag Count': str(np.random.randint(0, 3)),
-                'Flow IAT Mean': f"{np.random.exponential(10000):.0f} us",
-                'Flow IAT Std': f"{np.random.exponential(5000):.0f} us",
+                'Flow Duration': f"{duration_us:.0f} us",
+                'Total Fwd Packets': str(fwd_pkts),
+                'Total Bwd Packets': str(bwd_pkts),
+                'Flow Bytes/s': f"{bytes_per_sec:.0f}",
+                'Flow Packets/s': f"{pkts_per_sec:.1f}",
+                'Fwd Pkt Len Mean': f"{fwd_pkt_len:.1f}",
+                'Bwd Pkt Len Mean': f"{bwd_pkt_len:.1f}",
+                'SYN Flag Count': str(syn_cnt),
+                'ACK Flag Count': str(ack_cnt),
+                'RST Flag Count': str(rst_cnt),
+                'Flow IAT Mean': f"{iat_mean:.0f} us",
+                'Flow IAT Std': f"{iat_std:.0f} us",
             }
-            detail['related_flows'] = np.random.randint(1, 30)
+            # Remove internal feature list from API response
+            detail.pop('features', None)
             return jsonify(detail)
     return jsonify({'error': 'Not found'}), 404
 

@@ -288,10 +288,27 @@ Kết quả lưu tại `results/`.
 
 Dashboard live đã được tích hợp theo mô hình 5 tầng metrics (Glance → Real-time Flow → Threat Intelligence → Timeline/Patterns → Deep Investigation).
 
-### Cách chạy
+### Hai chế độ chạy
+
+Dashboard có **2 chế độ** dữ liệu:
+
+| Chế độ | Lệnh | Dữ liệu |
+|--------|-------|---------|
+| **Simulation** (mặc định) | `python dashboard_server.py` | Traffic giả lập — dùng để demo khi không có NIC thật |
+| **Live** (thật) | `sudo python dashboard_server.py --live --iface ens33` | Traffic THẬT từ NIC — AI inference + IP/port/heatmap thật |
+
+Badge ở góc phải header cho biết chế độ hiện tại:
+- Badge **xanh**: `LIVE: <iface>` — dữ liệu NIC thật
+- Badge **vàng**: `SIMULATED` — dữ liệu mô phỏng (không phải IP/heatmap thật)
+
+### Run commands
 
 ```bash
+# Chế độ simulation (mặc định — không cần quyền root)
 python dashboard_server.py
+
+# Chế độ LIVE (cần quyền root + scapy)
+sudo python3 dashboard_server.py --live --iface ens33
 ```
 
 Mở trình duyệt tại:
@@ -304,5 +321,14 @@ http://127.0.0.1:5000
 - Layer 1: system status badge, total alerts, throughput, latency, detection rate
 - Layer 2: timeline realtime, attack types, confidence distribution
 - Layer 3: severity/protocol split, top source IPs, top target ports/internal IPs, recent alerts
-- Layer 4: weekly heatmap, AI model metrics, điều chỉnh alert threshold + batch size
+- Layer 4: weekly heatmap, AI model metrics (accuracy, F1, precision, recall), queue health, điều chỉnh alert threshold + batch size
 - Layer 5: click alert để xem chi tiết flow và confidence phục vụ điều tra
+
+### Giới hạn cần biết
+
+- **Model là binary** (Normal vs Attack) — **không** phân loại được loại tấn công cụ thể.
+  Nhãn loại tấn công (DDoS/PortScan/BruteForce/WebAttack/Infiltration) trên dashboard
+  là **heuristic rule-based**, không phải AI. Đây là giới hạn thiết kế.
+- **Chế độ Simulation**: `top_source_ips`, `top_target_ports`, `heatmap` KHÔNG được cập nhật
+  (chỉ timeline + AI inference là thật) — để tránh hiểu nhầm dữ liệu giả là thật.
+- **Live mode** cần chạy với `sudo` để scapy có quyền sniff trên NIC.

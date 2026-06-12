@@ -5,6 +5,66 @@ Format: `[FILE] Mô tả thay đổi`
 
 ---
 
+## [2026-06-12] — Live capture mode + fix lại đường dẫn dataset CICIDS2017
+
+### Live Capture Mode
+
+#### `packet_capture.py` (mới)
+- **Thêm** `LivePacketCapture`: dùng `AsyncSniffer` (scapy) bắt packet thật từ NIC,
+  `FlowAggregator` gom thành flow (5-tuple), xuất 18 features khi flow kết thúc (FIN/RST)
+  hoặc timeout (UDP/ICMP).
+- **Thêm** `live_producer_thread()` — drop-in producer cho `main_monitor.py --mode live`,
+  đẩy feature vectors vào `packet_queue` để `consumer_thread()` / `ai_worker_thread()`
+  xử lý tiếp.
+- **Thêm** `detect_interface()` — tự dò interface có IP thật (ưu tiên `ens33`/`eth0`).
+
+#### `main_monitor.py`
+- **Thêm** `argparse` với `--mode {benchmark, live}`.
+- **Thêm** block `if args.mode == 'live'`: khởi tạo `packet_queue`/`feature_queue`,
+  start `live_producer_thread` + tái dùng `consumer_thread()`/`ai_worker_thread()`
+  có sẵn từ multi-thread mode, in `print_stats(..., "LIVE")` khi kết thúc.
+
+#### `config.py`
+- **Sửa** `NETWORK_INTERFACE = 'ens33'` cho testbed VMware bridge (Ubuntu 192.168.1.7).
+
+### Fix dataset path — synthetic fallback bug
+
+### Vấn đề phát hiện
+- Lần train sáng nay rơi vào **synthetic fallback** (100K samples, accuracy/precision/
+  recall/F1 = 1.0/1.0/1.0/1.0 — không thực tế) vì `DATASET_DIR` cũ
+  (`<BASE_DIR>/MachineLearningCVE/`) không tồn tại.
+- 8 file CSV thật thực ra nằm tại
+  `MachineLearningCSV/MachineLearningCVE/MachineLearningCVE/*.csv`
+  (zip CICIDS2017 giải nén lồng thêm 1 cấp `MachineLearningCVE/`).
+- Synthetic fallback còn **ghi đè** `data/dataset.csv` (cache 799,334 dòng thật trước đó)
+  bằng cache synthetic 100K dòng → mất cache thật.
+
+### Thay đổi
+
+#### `config.py`
+- **Sửa** `DATASET_DIR = os.path.join(BASE_DIR, "MachineLearningCSV", "MachineLearningCVE", "MachineLearningCVE")`
+  trỏ đúng vào vị trí thực tế của 8 file CSV (844MB, đã có sẵn `.gitignore` qua
+  `MachineLearningCSV/`).
+
+#### Vận hành
+- Xóa cache synthetic `data/dataset.csv`, chạy lại `train_model.py` để load 8 file
+  CSV thật và build lại cache 799,334-dòng.
+
+### Kết quả retrain trên RTX 3070 Ti
+
+| Chỉ số | Giá trị |
+|--------|---------|
+| Dataset | 799,334 flows thật — 8 files CICIDS2017 (639,467 train / 159,867 test) |
+| Model | XGBoost CUDA (device='cuda', tree_method='hist') |
+| Training time | 1.89s |
+| Accuracy | **99.47%** |
+| Precision | **97.78%** |
+| Recall | **99.48%** |
+| F1-Score | **98.62%** |
+| Inference throughput | 2,348,192 samples/giây |
+
+---
+
 ## [2026-04-03] — Xác nhận train thật với CICIDS2017 + fix đường dẫn dataset
 
 ### Vấn đề phát hiện

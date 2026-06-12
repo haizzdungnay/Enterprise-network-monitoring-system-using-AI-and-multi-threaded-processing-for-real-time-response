@@ -132,7 +132,8 @@ _GPU_PROFILE = GPU_PROFILES.get(_GPU_PROFILE_NAME, None)
 # ═══════════════════════════════════════════════════════════════
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")           # Cache merged dataset
-DATASET_DIR = os.path.join(BASE_DIR, "MachineLearningCVE")  # 8 file CSV thật
+# 8 file CSV thật (zip giải nén lồng 2 cấp MachineLearningCSV/MachineLearningCVE/MachineLearningCVE/)
+DATASET_DIR = os.path.join(BASE_DIR, "MachineLearningCSV", "MachineLearningCVE", "MachineLearningCVE")
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 RESULTS_DIR = os.path.join(BASE_DIR, "results")

@@ -63,6 +63,12 @@ Format: `[FILE] Mô tả thay đổi`
 | F1-Score | **98.62%** |
 | Inference throughput | 2,348,192 samples/giây |
 
+### Re-run xác nhận reproducibility
+- Chạy lại `train_model.py` lần 2: accuracy/precision/recall/F1 **giữ nguyên y nguyên**
+  (0.9946518 / 0.9778055 / 0.9948017 / 0.9862303 — deterministic nhờ `random_state=42`).
+- Chỉ số timing dao động theo noise đo đạc: `train_time` 1.89s → 1.71s,
+  inference throughput 2,348,192 → 2,885,517 samples/giây.
+
 ---
 
 ## [2026-04-03] — Xác nhận train thật với CICIDS2017 + fix đường dẫn dataset

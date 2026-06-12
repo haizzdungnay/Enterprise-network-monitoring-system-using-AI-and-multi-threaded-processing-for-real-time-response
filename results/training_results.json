@@ -1,6 +1,6 @@
 {
   "model_type": "xgboost",
-  "train_time": 1.8946001529693604,
+  "train_time": 1.710329532623291,
   "train_samples": 639467,
   "test_samples": 159867,
   "metrics": {
@@ -8,40 +8,40 @@
     "precision": 0.9778054544293288,
     "recall": 0.9948016504759739,
     "f1": 0.9862303319214726,
-    "throughput": 2348191.5642965203
+    "throughput": 2885517.5514377435
   },
   "batch_benchmark": {
     "1": {
-      "throughput": 705.7705432659495,
-      "latency_per_sample": 1.416891098022461
+      "throughput": 726.1365273176515,
+      "latency_per_sample": 1.3771514892578125
     },
     "8": {
-      "throughput": 785.0010534702968,
-      "latency_per_sample": 1.2738836407661436
+      "throughput": 732.9124110393527,
+      "latency_per_sample": 1.3644195199012756
     },
     "16": {
-      "throughput": 1245.544338166465,
-      "latency_per_sample": 0.802861824631691
+      "throughput": 1260.9555754880894,
+      "latency_per_sample": 0.7930493503808974
     },
     "32": {
-      "throughput": 16378.40391204226,
-      "latency_per_sample": 0.06105601042509078
+      "throughput": 15687.800243771644,
+      "latency_per_sample": 0.06374379992485046
     },
     "64": {
-      "throughput": 28983.101326395583,
-      "latency_per_sample": 0.03450286388397217
+      "throughput": 39201.69602340809,
+      "latency_per_sample": 0.025509100407361984
     },
     "128": {
-      "throughput": 61219.66953499038,
-      "latency_per_sample": 0.016334619373083115
+      "throughput": 78865.31677106225,
+      "latency_per_sample": 0.012679845094680786
     },
     "256": {
-      "throughput": 121983.17255446929,
-      "latency_per_sample": 0.008197852040235048
+      "throughput": 162226.8501200089,
+      "latency_per_sample": 0.006164207708281584
     },
     "512": {
-      "throughput": 214495.02692364948,
-      "latency_per_sample": 0.004662112750781652
+      "throughput": 272737.6298633737,
+      "latency_per_sample": 0.0036665274260135796
     }
   }
 }

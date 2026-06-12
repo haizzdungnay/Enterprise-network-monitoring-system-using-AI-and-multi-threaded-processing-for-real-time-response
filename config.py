@@ -156,7 +156,7 @@ SNAP_LEN: Số byte tối đa capture từ mỗi packet
 - 65535: Capture toàn bộ packet
 - 128: Chỉ capture header (tiết kiệm RAM, đủ cho phân tích flow)
 """
-NETWORK_INTERFACE = None          # None = auto-detect
+NETWORK_INTERFACE = 'ens33'          # None = auto-detect
 SNAP_LEN = 65535                  # Max bytes per packet
 CAPTURE_TIMEOUT = 60              # Giây - thời gian capture mỗi session
 PCAP_FILE = None                  # Đường dẫn file PCAP (None = live capture)

@@ -73,6 +73,7 @@ Multiprocessing Queue:
 """
 
 import os
+import argparse
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 import time
@@ -93,6 +94,7 @@ from feature_extractor import (
     generate_simulated_features,
 )
 from ai_model import IDSModel
+from packet_capture import live_producer_thread
 
 # Fix Windows console encoding (cp1252 không hỗ trợ đầy đủ Unicode)
 if hasattr(sys.stdout, 'reconfigure'):
@@ -796,6 +798,10 @@ def print_stats(stats_dict, mode_name):
 # ═══════════════════════════════════════════════════════════════
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', choices=['benchmark', 'live'], default='benchmark')
+    args = parser.parse_args()
+
     print("╔" + "═" * 58 + "╗")
     print("║    HỆ THỐNG GIÁM SÁT MẠNG - ENTERPRISE NETWORK IDS    ║")
     print("╚" + "═" * 58 + "╝")
@@ -814,6 +820,22 @@ def main():
     model = IDSModel()
     model.load()
     scaler = joblib.load(config.SCALER_PATH)
+
+    if args.mode == 'live':
+        packet_queue = queue.Queue(maxsize=config.PACKET_QUEUE_SIZE)
+        feature_queue = queue.Queue(maxsize=config.FEATURE_QUEUE_SIZE)
+        stop_event = threading.Event()
+        stats = MonitorStats()
+        producer = threading.Thread(target=live_producer_thread, args=(packet_queue, stop_event, stats), kwargs={'iface': config.NETWORK_INTERFACE}, daemon=True)
+        producer.start()
+        consumers = [threading.Thread(target=consumer_thread, args=(packet_queue, feature_queue, stats, stop_event), name=f"Consumer-{i}", daemon=True) for i in range(config.NUM_CONSUMER_THREADS)]
+        workers = [threading.Thread(target=ai_worker_thread, args=(i, feature_queue, model, scaler, stats, stop_event), name=f"AIWorker-{i}", daemon=True) for i in range(config.NUM_AI_WORKERS)]
+        [t.start() for t in consumers + workers]
+        producer.join()
+        [t.join() for t in consumers + workers]
+        result_live = stats.get_summary()
+        print_stats(result_live, "LIVE")
+        return {'live': result_live}
 
     num_packets = config.BENCHMARK_NUM_PACKETS
 

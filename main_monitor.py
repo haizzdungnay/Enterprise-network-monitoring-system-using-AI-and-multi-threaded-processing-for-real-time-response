@@ -395,6 +395,48 @@ def consumer_thread(packet_queue, feature_queue, stats, stop_event):
             last_batch_time = time.time()
 
 
+def live_consumer_thread(packet_queue, feature_queue, stats, stop_event):
+    """
+    ╔════════════════════════════════════════════════════════╗
+    ║  LIVE CONSUMER THREAD - Batch flow features THẬT       ║
+    ╠════════════════════════════════════════════════════════╣
+    ║  Khác consumer_thread: KHÔNG sinh feature giả.         ║
+    ║  Live producer đã đẩy (features, capture_time, meta)   ║
+    ║  từ FlowAggregator → chỉ cần gom batch & forward.      ║
+    ╚════════════════════════════════════════════════════════╝
+    """
+    logger.info("Live consumer started (real flow features).")
+    batch_buffer = []
+    last_batch_time = time.time()
+
+    while not stop_event.is_set():
+        try:
+            item = packet_queue.get(timeout=0.5)
+        except queue.Empty:
+            if batch_buffer and (time.time() - last_batch_time) > config.BATCH_TIMEOUT:
+                feature_queue.put(batch_buffer)
+                batch_buffer = []
+                last_batch_time = time.time()
+            continue
+
+        if item is None:  # Sentinel
+            if batch_buffer:
+                feature_queue.put(batch_buffer)
+            feature_queue.put(None)
+            logger.info("Live consumer received sentinel. Shutting down.")
+            break
+
+        # Live producer đẩy 3-tuple — dùng feature THẬT, bỏ meta cho AI worker
+        features, capture_time, _meta = item
+        stats.record_processed()
+        batch_buffer.append((features, capture_time))
+
+        if len(batch_buffer) >= config.BATCH_SIZE:
+            feature_queue.put(batch_buffer)
+            batch_buffer = []
+            last_batch_time = time.time()
+
+
 def ai_worker_thread(worker_id, feature_queue, model, scaler, stats, stop_event):
     """
     ╔════════════════════════════════════════════════════════╗
@@ -826,13 +868,51 @@ def main():
         feature_queue = queue.Queue(maxsize=config.FEATURE_QUEUE_SIZE)
         stop_event = threading.Event()
         stats = MonitorStats()
-        producer = threading.Thread(target=live_producer_thread, args=(packet_queue, stop_event, stats), kwargs={'iface': config.NETWORK_INTERFACE}, daemon=True)
+
+        # Ctrl+C → graceful shutdown: set stop_event để mọi thread thoát,
+        # producer flush nốt flow còn lại và in stats (thay vì treo ở join()).
+        def _handle_sigint(signum, frame):
+            logger.info("Ctrl+C nhận được — đang dừng live capture...")
+            stop_event.set()
+        signal.signal(signal.SIGINT, _handle_sigint)
+
+        producer = threading.Thread(
+            target=live_producer_thread,
+            args=(packet_queue, stop_event, stats),
+            kwargs={'iface': config.NETWORK_INTERFACE},
+            name="LiveProducer", daemon=True)
+        # Live consumer dùng feature THẬT từ FlowAggregator (không sinh giả)
+        consumers = [threading.Thread(
+            target=live_consumer_thread,
+            args=(packet_queue, feature_queue, stats, stop_event),
+            name=f"LiveConsumer-{i}", daemon=True)
+            for i in range(config.NUM_CONSUMER_THREADS)]
+        workers = [threading.Thread(
+            target=ai_worker_thread,
+            args=(i, feature_queue, model, scaler, stats, stop_event),
+            name=f"AIWorker-{i}", daemon=True)
+            for i in range(config.NUM_AI_WORKERS)]
+
         producer.start()
-        consumers = [threading.Thread(target=consumer_thread, args=(packet_queue, feature_queue, stats, stop_event), name=f"Consumer-{i}", daemon=True) for i in range(config.NUM_CONSUMER_THREADS)]
-        workers = [threading.Thread(target=ai_worker_thread, args=(i, feature_queue, model, scaler, stats, stop_event), name=f"AIWorker-{i}", daemon=True) for i in range(config.NUM_AI_WORKERS)]
-        [t.start() for t in consumers + workers]
-        producer.join()
-        [t.join() for t in consumers + workers]
+        for t in consumers + workers:
+            t.start()
+
+        logger.info("Live monitor đang chạy. Nhấn Ctrl+C để dừng.")
+        # Main thread chờ stop_event, in snapshot stats định kỳ
+        while not stop_event.is_set():
+            stop_event.wait(config.STATS_INTERVAL)
+            if not stop_event.is_set():
+                snap = stats.get_summary()
+                logger.info(f"[LIVE] processed={snap['packets_processed']} "
+                            f"preds={snap['ai_predictions']} "
+                            f"attacks={snap['attacks_detected']} "
+                            f"avg_lat={snap['avg_latency_ms']:.1f}ms")
+
+        # Shutdown: stop_event đã set, mọi thread thoát trong ≤0.5s
+        producer.join(timeout=10)
+        for t in consumers + workers:
+            t.join(timeout=10)
+
         result_live = stats.get_summary()
         print_stats(result_live, "LIVE")
         return {'live': result_live}

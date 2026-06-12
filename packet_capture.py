@@ -242,20 +242,24 @@ class LivePacketCapture:
             return  # Không phải IP packet
 
         # Đưa vào FlowAggregator
-        # Nếu flow kết thúc (FIN/RST) → trả về feature vector ngay
-        features = self.flow_aggregator.add_packet(packet_info)
-        if features is not None:
-            self._push_features(features)
+        # Nếu flow kết thúc (FIN/RST) → trả về (features, meta) ngay
+        exported = self.flow_aggregator.add_packet(packet_info)
+        if exported is not None:
+            features, meta = exported
+            self._push_features(features, meta)
 
-    def _push_features(self, features: np.ndarray):
+    def _push_features(self, features: np.ndarray, meta: dict):
         """
-        Đẩy feature vector vào queue để Consumer xử lý.
+        Đẩy feature vector + metadata 5-tuple vào queue để Consumer xử lý.
         Dùng put_nowait để không block callback thread.
+
+        meta chứa src_ip/dst_ip/dst_port/protocol thật → dashboard hiển thị
+        được Top Source IPs, Top Ports, Protocol split từ traffic THẬT.
         """
         try:
             # Đẩy cùng capture_time để tính latency
             capture_time = time.time()
-            self.packet_queue.put_nowait((features, capture_time))
+            self.packet_queue.put_nowait((features, capture_time, meta))
             self.flows_exported += 1
             if self.stats:
                 self.stats.record_processed()
@@ -284,8 +288,8 @@ class LivePacketCapture:
                 break
 
             expired = self.flow_aggregator.check_timeouts()
-            for features in expired:
-                self._push_features(features)
+            for features, meta in expired:
+                self._push_features(features, meta)
 
             if expired:
                 logger.debug(f"[LiveCapture] Exported {len(expired)} timed-out flows "
@@ -343,8 +347,8 @@ class LivePacketCapture:
 
         # Export nốt các flows còn trong bộ nhớ
         remaining = self.flow_aggregator.check_timeouts()
-        for features in remaining:
-            self._push_features(features)
+        for features, meta in remaining:
+            self._push_features(features, meta)
 
         logger.info(f"[LiveCapture] Đã dừng. "
                     f"Packets: {self.packets_seen} | "
@@ -458,10 +462,9 @@ if __name__ == '__main__':
     print(f"KẾT QUẢ: {test_queue.qsize()} flow feature vectors trong queue")
     count = 0
     while not test_queue.empty() and count < 5:
-        features, ts = test_queue.get_nowait()
-        print(f"  Flow {count+1}: shape={features.shape} | "
-              f"dst_port={features[17]:.0f} | "
-              f"syn={features[8]:.0f} | "
-              f"bytes/s={features[3]:.1f}")
+        features, ts, meta = test_queue.get_nowait()
+        print(f"  Flow {count+1}: {meta['src_ip']}:{meta['src_port']} → "
+              f"{meta['dst_ip']}:{meta['dst_port']} proto={meta['protocol']} | "
+              f"syn={features[8]:.0f} | bytes/s={features[3]:.1f}")
         count += 1
     print(f"{'─'*60}")

@@ -5,6 +5,58 @@ Format: `[FILE] Mô tả thay đổi`
 
 ---
 
+## [2026-06-12b] — Dashboard hiển thị traffic THẬT từ NIC (hết dữ liệu mẫu)
+
+### Vấn đề
+- Dashboard monitoring (`dashboard_server.py`, cổng 5000) chạy `_simulation_loop()`
+  sinh **toàn bộ** flow/IP/port/attack-type bằng `generate_simulated_*` — AI inference
+  là thật nhưng **dữ liệu đầu vào hoàn toàn giả**. Frontend↔backend vốn đã nối đúng
+  (`/api/state` polling, không hardcode); lỗi nằm ở **nguồn dữ liệu backend**.
+- `FlowAggregator._export_flow()` **vứt mất** metadata 5-tuple, chỉ trả feature vector
+  → kể cả khi capture thật cũng không có src_ip/dst_ip/port để hiển thị.
+
+### Thay đổi
+
+#### `feature_extractor.py`
+- **Sửa** `FlowAggregator._export_flow()` trả `(features, meta)` với meta =
+  {src_ip, dst_ip, src_port, dst_port, protocol, total_packets, total_bytes}.
+- **Cập nhật** `add_packet()` / `check_timeouts()` theo signature mới.
+
+#### `packet_capture.py`
+- **Sửa** `_push_features(features, meta)` đẩy 3-tuple `(features, capture_time, meta)`
+  vào queue → consumer có metadata thật để hiển thị.
+
+#### `dashboard_server.py`
+- **Tách** logic inference + cập nhật state thành `_ingest_flows()` dùng chung cho
+  cả sim và live.
+- **Thêm** `_live_loop(iface)`: bắt packet THẬT qua `LivePacketCapture`, gom flow,
+  chạy AI inference, cập nhật state với IP/port/protocol thật.
+- **Thêm** `_classify_attack_type()`: model BINARY không trả loại tấn công cụ thể →
+  heuristic theo cổng đích + cờ TCP (PortScan/BruteForce/WebAttack/DDoS/Infiltration).
+- **Thêm** CLI `--live [--iface ens33] [--host 0.0.0.0] [--port 5000]`; mặc định vẫn
+  là simulated (an toàn khi không có scapy/NIC).
+- **Sửa** `false_positive_rate` = `(1 − precision)` từ training metrics (tĩnh, trung thực)
+  thay cho `np.random.uniform(1,4)`.
+- **Thêm** `data_source` + `iface` vào `/api/state` để frontend hiện badge LIVE/SIM.
+
+#### `main_monitor.py`
+- **Thêm** `live_consumer_thread()` dùng feature THẬT (queue giờ là 3-tuple) thay vì
+  `consumer_thread` sinh feature giả.
+- **Thêm** SIGINT handler cho `--mode live`: Ctrl+C set `stop_event` → flush flow còn
+  lại + in stats, thay vì treo ở `producer.join()`.
+
+#### `dashboard_static/index.html`
+- **Thêm** badge nguồn dữ liệu (LIVE: <iface> / SIMULATED) ở header.
+- **Sửa** label "Simulated capture rate" → động theo `data_source`.
+
+### Cách chạy live trên Ubuntu VM
+```bash
+sudo python3 dashboard_server.py --live --iface ens33     # dashboard traffic thật
+sudo python3 main_monitor.py --mode live                  # pipeline CLI traffic thật
+```
+
+---
+
 ## [2026-06-12] — Live capture mode + fix lại đường dẫn dataset CICIDS2017
 
 ### Live Capture Mode

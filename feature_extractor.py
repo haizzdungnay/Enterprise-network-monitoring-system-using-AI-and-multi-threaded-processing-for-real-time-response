@@ -169,7 +169,10 @@ class FlowAggregator:
     def add_packet(self, packet_info):
         """
         Thêm packet vào flow tương ứng.
-        Trả về flow features nếu flow kết thúc, None nếu chưa.
+        Trả về (features, meta) nếu flow kết thúc, None nếu chưa.
+
+        meta là dict chứa 5-tuple thật (src_ip, dst_ip, src_port, dst_port,
+        protocol) để dashboard hiển thị Top Source IPs / Ports / Protocol split.
         """
         key = self._flow_key(packet_info)
         flow = self.flows[key]
@@ -212,7 +215,10 @@ class FlowAggregator:
         return None
 
     def check_timeouts(self):
-        """Kiểm tra và export các flows đã timeout."""
+        """
+        Kiểm tra và export các flows đã timeout.
+        Trả về list các tuple (features, meta).
+        """
         now = time.time()
         expired_flows = []
 
@@ -222,15 +228,16 @@ class FlowAggregator:
 
         results = []
         for key in expired_flows:
-            features = self._export_flow(key)
-            if features is not None:
-                results.append(features)
+            exported = self._export_flow(key)
+            if exported is not None:
+                results.append(exported)
 
         return results
 
     def _export_flow(self, key):
         """
         Tính toán features từ flow data và xóa flow.
+        Trả về (features, meta) hoặc None.
 
         LÝ THUYẾT: Statistical Features
         ────────────────────────────────
@@ -276,7 +283,17 @@ class FlowAggregator:
             'dst_port': key[3],
         }
 
-        return self.extractor.extract_from_packet_dict(packet_info)
+        features = self.extractor.extract_from_packet_dict(packet_info)
+        meta = {
+            'src_ip':   key[0],
+            'dst_ip':   key[1],
+            'src_port': key[2],
+            'dst_port': key[3],
+            'protocol': key[4],
+            'total_packets': total_packets,
+            'total_bytes': total_bytes,
+        }
+        return features, meta
 
 
 def generate_simulated_packet():

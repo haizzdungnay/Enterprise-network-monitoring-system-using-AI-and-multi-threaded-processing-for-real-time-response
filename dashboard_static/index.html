@@ -249,7 +249,10 @@ a { color: var(--blue); text-decoration: none; }
       <h1>Network IDS &mdash; SOC Console</h1>
       <div class="subtitle">Enterprise Network Monitoring System &bull; AI-powered Real-time Detection</div>
     </div>
-    <span class="badge b-ok" id="statusBadge"><span class="pulse"></span> System nominal</span>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span class="badge" id="sourceBadge" style="background:#30363d;color:#8b949e">SOURCE: --</span>
+      <span class="badge b-ok" id="statusBadge"><span class="pulse"></span> System nominal</span>
+    </div>
   </div>
 
   <!-- ════════ LAYER 1 — GLANCE ════════ -->
@@ -328,7 +331,7 @@ a { color: var(--blue); text-decoration: none; }
       <div id="dstIpList"></div>
       <div class="section-title" style="margin-top:12px">Packets/sec on NIC</div>
       <div class="card-value" style="font-size:22px" id="mPktSec">0</div>
-      <div class="card-sub">Simulated capture rate</div>
+      <div class="card-sub" id="mPktSecLabel">Capture rate</div>
       <div class="section-title" style="margin-top:12px">False Positive Rate</div>
       <div class="card-value" style="font-size:22px" id="mFPR">0%</div>
       <div class="card-sub">Avg conf: <span id="mAvgConf">--</span></div>
@@ -695,6 +698,20 @@ function refresh() {
       const threatEl = document.getElementById('mThreat');
       threatEl.textContent = d.threat_level;
       threatEl.style.color = d.threat_level === 'High' ? 'var(--red)' : (d.threat_level === 'Medium' ? 'var(--yellow)' : 'var(--green)');
+
+      // Data source badge (LIVE NIC vs SIMULATED)
+      const srcBadge = document.getElementById('sourceBadge');
+      if (d.data_source === 'live') {
+        srcBadge.textContent = 'LIVE: ' + (d.iface || 'NIC');
+        srcBadge.style.background = 'rgba(63,185,80,0.15)';
+        srcBadge.style.color = '#3fb950';
+        document.getElementById('mPktSecLabel').textContent = 'Real NIC capture rate';
+      } else {
+        srcBadge.textContent = 'SIMULATED';
+        srcBadge.style.background = 'rgba(210,153,34,0.15)';
+        srcBadge.style.color = '#d29922';
+        document.getElementById('mPktSecLabel').textContent = 'Simulated capture rate';
+      }
 
       // Status badge
       const badge = document.getElementById('statusBadge');

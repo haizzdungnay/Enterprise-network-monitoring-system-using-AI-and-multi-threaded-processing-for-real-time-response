@@ -41,6 +41,10 @@ app = Flask(__name__, static_folder='dashboard_static')
 _lock = threading.Lock()
 
 state = {
+    # Data source: 'simulated' (generate_simulated_*) hoặc 'live' (NIC thật)
+    'data_source': 'simulated',
+    'iface': '',
+
     # Layer 1 - Glance
     'system_status': 'nominal',       # nominal | elevated | critical
     'total_flows': 0,
@@ -122,6 +126,9 @@ def _load_model():
             state['ai_f1'] = m.get('f1', 0) * 100
             state['ai_recall'] = m.get('recall', 0) * 100
             state['ai_precision'] = m.get('precision', 0) * 100
+            # FPR = 1 - precision (ước lượng tĩnh từ tập test — real-time không
+            # có ground-truth nên đây là FPR đặc trưng của model, không random).
+            state['false_positive_rate'] = round((1 - m.get('precision', 1)) * 100, 2)
         print(f"[+] Training metrics loaded: Acc={state['ai_accuracy']:.1f}%")
 
 
@@ -138,7 +145,7 @@ def _prepare_batch_for_scaler(X_batch, scaler):
 
 
 # ═══════════════════════════════════════════════════════════════
-# SIMULATION ENGINE  (background thread — real AI inference)
+# INFERENCE + STATE UPDATE  (dùng chung cho sim & live)
 # ═══════════════════════════════════════════════════════════════
 
 _ATTACK_LABELS = ['DDoS', 'PortScan', 'BruteForce', 'WebAttack', 'Infiltration']
@@ -147,21 +154,176 @@ _SRC_IPS_POOL = [f'10.{np.random.randint(1,5)}.{np.random.randint(0,10)}.{np.ran
                  for _ in range(30)]
 _DST_IPS_POOL = [f'192.168.1.{i}' for i in [10, 20, 50, 100, 150, 200]]
 
+
+def _classify_attack_type(features, meta):
+    """
+    Model là BINARY (attack/normal) → không trả về loại tấn công cụ thể.
+    Ánh xạ heuristic sang nhóm dựa trên cổng đích + cờ TCP của flow THẬT:
+      - PortScan : nhiều SYN, gần như không có ACK (probe rồi bỏ)
+      - BruteForce: cổng dịch vụ auth (SSH/Telnet/FTP/RDP/SMB/DB)
+      - WebAttack : cổng web (HTTP/HTTPS/alt)
+      - DDoS      : packet-rate cao hoặc nhiều RST
+      - Infiltration: còn lại
+    """
+    dst_port = int(meta.get('dst_port', 0))
+    syn = features[8]; ack = features[12]; rst = features[10]
+    flow_pkts_per_sec = features[4]
+
+    if syn > 0 and ack == 0:
+        return 'PortScan'
+    if dst_port in (22, 23, 21, 3389, 445, 1433, 3306):
+        return 'BruteForce'
+    if dst_port in (80, 443, 8080, 8443):
+        return 'WebAttack'
+    if rst > 0 or flow_pkts_per_sec > 1000:
+        return 'DDoS'
+    return 'Infiltration'
+
+
+def _ingest_flows(feats, times, metas, packets_per_sec, queue_fill_pct):
+    """
+    Chạy AI inference thật trên 1 batch flow, cập nhật toàn bộ state.
+    feats/times/metas là list song song. meta phải có
+    src_ip/dst_ip/dst_port/protocol (từ FlowAggregator hoặc simulated packet).
+    """
+    if not feats:
+        return
+
+    X = np.array(feats)
+    t0 = time.time()
+    try:
+        X_prep = _prepare_batch_for_scaler(X, _scaler)
+        X_scaled = _scaler.transform(X_prep)
+        labels, probas = _model.batch_predict(X_scaled)
+    except Exception as e:
+        print(f"[!] Inference error: {e}")
+        return
+    inference_time = time.time() - t0
+
+    now = time.time()
+    normal_count = 0
+    attack_count = 0
+
+    with _lock:
+        threshold = state['alert_threshold']
+        for i in range(len(labels)):
+            proba = probas[i]
+            meta = metas[i]
+            cap_time = times[i]
+            conf = float(proba[1]) if len(proba) > 1 else float(proba[0])
+            latency = (now - cap_time) * 1000  # ms
+            _latencies.append(latency)
+            _confidences.append(conf)
+
+            state['total_flows'] += 1
+
+            # Protocol (từ flow thật)
+            proto = meta.get('protocol', 6)
+            if proto == 6:
+                state['protocol_split']['TCP'] += 1
+            elif proto == 17:
+                state['protocol_split']['UDP'] += 1
+            else:
+                state['protocol_split']['ICMP'] += 1
+
+            is_attack = conf >= threshold
+
+            if is_attack:
+                attack_count += 1
+                state['total_alerts'] += 1
+
+                sev = _SEVERITY_MAP(conf)
+                state['severity'][sev] += 1
+
+                atk_type = _classify_attack_type(X[i], meta)
+                state['attack_types'][atk_type] += 1
+
+                src_ip = meta.get('src_ip', np.random.choice(_SRC_IPS_POOL))
+                dst_port = int(meta.get('dst_port', 80))
+                dst_ip = meta.get('dst_ip', np.random.choice(_DST_IPS_POOL))
+
+                state['top_source_ips'][src_ip] = state['top_source_ips'].get(src_ip, 0) + 1
+                state['top_target_ports'][str(dst_port)] = state['top_target_ports'].get(str(dst_port), 0) + 1
+                state['top_target_ips'][dst_ip] = state['top_target_ips'].get(dst_ip, 0) + 1
+
+                # Heatmap
+                dt = datetime.now()
+                state['heatmap'][dt.weekday()][dt.hour] += 1
+
+                # Recent alerts (keep 50)
+                proto_name = {6: 'TCP', 17: 'UDP', 1: 'ICMP'}.get(proto, 'TCP')
+                alert_entry = {
+                    'time': dt.strftime('%H:%M:%S'),
+                    'src_ip': src_ip,
+                    'dst_ip': dst_ip,
+                    'port': dst_port,
+                    'protocol': proto_name,
+                    'type': atk_type,
+                    'confidence': round(conf * 100, 1),
+                    'severity': sev,
+                }
+                state['recent_alerts'].insert(0, alert_entry)
+                if len(state['recent_alerts']) > 50:
+                    state['recent_alerts'] = state['recent_alerts'][:50]
+            else:
+                normal_count += 1
+
+        # Update computed metrics
+        elapsed = now - _start_time
+        state['throughput'] = state['total_flows'] / max(elapsed, 0.001)
+        state['packets_per_sec'] = packets_per_sec
+        state['detection_rate'] = (state['total_alerts'] / max(state['total_flows'], 1)) * 100
+        state['queue_fill_pct'] = queue_fill_pct
+
+        if _latencies:
+            lats = list(_latencies)
+            state['avg_latency_ms'] = round(np.mean(lats), 1)
+            state['p95_latency_ms'] = round(np.percentile(lats, 95), 1)
+
+        state['ai_inference_ms'] = round(inference_time * 1000 / max(len(labels), 1), 2)
+
+        # Confidence histogram
+        bins = [0]*10
+        for c in _confidences:
+            idx = min(int(c * 10), 9)
+            bins[idx] += 1
+        state['confidence_histogram'] = bins
+
+        # System status badge
+        crit = state['severity']['critical']
+        med = state['severity']['medium']
+        if crit > 15 or state['detection_rate'] > 25:
+            state['system_status'] = 'critical'
+            state['threat_level'] = 'High'
+        elif crit > 5 or med > 15 or state['detection_rate'] > 12:
+            state['system_status'] = 'elevated'
+            state['threat_level'] = 'Medium'
+        else:
+            state['system_status'] = 'nominal'
+            state['threat_level'] = 'Low'
+
+        # Timeline
+        state['timeline_labels'].append(f"{int(elapsed)}s")
+        state['timeline_normal'].append(normal_count)
+        state['timeline_attack'].append(attack_count)
+        if len(state['timeline_labels']) > 60:
+            state['timeline_labels'] = state['timeline_labels'][-60:]
+            state['timeline_normal'] = state['timeline_normal'][-60:]
+            state['timeline_attack'] = state['timeline_attack'][-60:]
+
+
+# ═══════════════════════════════════════════════════════════════
+# DATA SOURCE 1: SIMULATION  (demo khi không có NIC / traffic thật)
+# ═══════════════════════════════════════════════════════════════
+
 def _simulation_loop():
-    """Background thread: generate traffic, run real AI inference, update state."""
-    global _running
-    tick = 0
-    batch_buf = []
-    batch_times = []
-    batch_meta = []
+    """Background thread: sinh traffic giả, chạy AI inference THẬT, cập nhật state."""
+    batch_buf, batch_times, batch_meta = [], [], []
 
     while _running:
         time.sleep(0.15)  # ~6-7 ticks/sec → smooth updates
 
         bs = state['batch_size']
-        threshold = state['alert_threshold']
-
-        # Generate a micro-batch of simulated flows
         n_flows = np.random.randint(5, 20)
         for _ in range(n_flows):
             pkt = generate_simulated_packet()
@@ -170,144 +332,78 @@ def _simulation_loop():
             batch_times.append(time.time())
             batch_meta.append(pkt)
 
-        # Process when batch full
         if len(batch_buf) < bs:
             continue
 
-        X = np.array(batch_buf[:bs])
-        times = batch_times[:bs]
-        metas = batch_meta[:bs]
-        batch_buf = batch_buf[bs:]
-        batch_times = batch_times[bs:]
-        batch_meta = batch_meta[bs:]
+        X = batch_buf[:bs]; times = batch_times[:bs]; metas = batch_meta[:bs]
+        batch_buf = batch_buf[bs:]; batch_times = batch_times[bs:]; batch_meta = batch_meta[bs:]
 
-        # Real AI inference
-        t0 = time.time()
+        _ingest_flows(X, times, metas,
+                      packets_per_sec=n_flows / 0.15,
+                      queue_fill_pct=round(np.random.uniform(5, 45), 1))
+
+
+# ═══════════════════════════════════════════════════════════════
+# DATA SOURCE 2: LIVE NIC CAPTURE  (traffic THẬT từ scapy)
+# ═══════════════════════════════════════════════════════════════
+
+_last_pkt_count = 0
+_last_pkt_time = time.time()
+
+def _pps_rate(capture):
+    """Tính packets/sec thật trên NIC từ delta packets_seen."""
+    global _last_pkt_count, _last_pkt_time
+    now = time.time()
+    dt = now - _last_pkt_time
+    if dt < 0.5:
+        return state.get('packets_per_sec', 0.0)
+    rate = (capture.packets_seen - _last_pkt_count) / dt
+    _last_pkt_count = capture.packets_seen
+    _last_pkt_time = now
+    return round(rate, 0)
+
+
+def _live_loop(iface):
+    """
+    Background thread: bắt packet THẬT từ NIC qua LivePacketCapture,
+    gom flow → feature vector + meta 5-tuple, chạy AI inference, cập nhật state.
+    """
+    from packet_capture import LivePacketCapture
+
+    pkt_queue = queue.Queue(maxsize=config.PACKET_QUEUE_SIZE)
+    capture = LivePacketCapture(packet_queue=pkt_queue, iface=iface, flow_timeout=30.0)
+
+    with _lock:
+        state['data_source'] = 'live'
+        state['iface'] = capture.iface
+
+    capture.start()
+    print(f"[+] LIVE capture trên {capture.iface} — dashboard hiển thị traffic THẬT.")
+
+    batch_feats, batch_times, batch_metas = [], [], []
+    last_flush = time.time()
+
+    while _running:
         try:
-            X_prep = _prepare_batch_for_scaler(X, _scaler)
-            X_scaled = _scaler.transform(X_prep)
-            labels, probas = _model.batch_predict(X_scaled)
-        except Exception as e:
-            print(f"[!] Inference error: {e}")
-            continue
-        inference_time = (time.time() - t0)
+            features, cap_time, meta = pkt_queue.get(timeout=0.5)
+            batch_feats.append(features)
+            batch_times.append(cap_time)
+            batch_metas.append(meta)
+        except queue.Empty:
+            pass
 
+        bs = state['batch_size']
         now = time.time()
-        tick += 1
-        normal_count = 0
-        attack_count = 0
+        # Flush khi đủ batch HOẶC có flow chờ >1s (traffic thật thường thưa)
+        if batch_feats and (len(batch_feats) >= bs or now - last_flush > 1.0):
+            qfill = round(pkt_queue.qsize() / config.PACKET_QUEUE_SIZE * 100, 1)
+            _ingest_flows(batch_feats, batch_times, batch_metas,
+                          packets_per_sec=_pps_rate(capture),
+                          queue_fill_pct=qfill)
+            batch_feats, batch_times, batch_metas = [], [], []
+            last_flush = now
 
-        with _lock:
-            for i, (label, proba, meta, cap_time) in enumerate(
-                    zip(labels, probas, metas, times)):
-                conf = float(proba[1]) if len(proba) > 1 else float(proba[0])
-                latency = (now - cap_time) * 1000  # ms
-                _latencies.append(latency)
-                _confidences.append(conf)
-
-                state['total_flows'] += 1
-
-                # Protocol
-                proto = meta.get('protocol', 6)
-                if proto == 6:
-                    state['protocol_split']['TCP'] += 1
-                elif proto == 17:
-                    state['protocol_split']['UDP'] += 1
-                else:
-                    state['protocol_split']['ICMP'] += 1
-
-                is_attack = conf >= threshold
-
-                if is_attack:
-                    attack_count += 1
-                    state['total_alerts'] += 1
-
-                    sev = _SEVERITY_MAP(conf)
-                    state['severity'][sev] += 1
-
-                    atk_type = np.random.choice(_ATTACK_LABELS,
-                                                 p=[0.30, 0.25, 0.20, 0.15, 0.10])
-                    state['attack_types'][atk_type] += 1
-
-                    src_ip = meta.get('src_ip', np.random.choice(_SRC_IPS_POOL))
-                    dst_port = int(meta.get('dst_port', 80))
-                    dst_ip = meta.get('dst_ip', np.random.choice(_DST_IPS_POOL))
-
-                    state['top_source_ips'][src_ip] = state['top_source_ips'].get(src_ip, 0) + 1
-                    state['top_target_ports'][str(dst_port)] = state['top_target_ports'].get(str(dst_port), 0) + 1
-                    state['top_target_ips'][dst_ip] = state['top_target_ips'].get(dst_ip, 0) + 1
-
-                    # Heatmap
-                    dt = datetime.now()
-                    day_idx = (dt.weekday())  # 0=Mon
-                    hour_idx = dt.hour
-                    state['heatmap'][day_idx][hour_idx] += 1
-
-                    # Recent alerts (keep 50)
-                    proto_name = {6: 'TCP', 17: 'UDP', 1: 'ICMP'}.get(proto, 'TCP')
-                    alert_entry = {
-                        'time': dt.strftime('%H:%M:%S'),
-                        'src_ip': src_ip,
-                        'dst_ip': dst_ip,
-                        'port': dst_port,
-                        'protocol': proto_name,
-                        'type': atk_type,
-                        'confidence': round(conf * 100, 1),
-                        'severity': sev,
-                    }
-                    state['recent_alerts'].insert(0, alert_entry)
-                    if len(state['recent_alerts']) > 50:
-                        state['recent_alerts'] = state['recent_alerts'][:50]
-                else:
-                    normal_count += 1
-
-            # Update computed metrics
-            elapsed = now - _start_time
-            state['throughput'] = state['total_flows'] / max(elapsed, 0.001)
-            state['packets_per_sec'] = n_flows / 0.15  # approx
-            state['detection_rate'] = (state['total_alerts'] / max(state['total_flows'], 1)) * 100
-            state['queue_fill_pct'] = min(np.random.uniform(5, 45) + (attack_count * 3), 100)
-
-            if _latencies:
-                lats = list(_latencies)
-                state['avg_latency_ms'] = round(np.mean(lats), 1)
-                state['p95_latency_ms'] = round(np.percentile(lats, 95), 1)
-
-            state['ai_inference_ms'] = round(inference_time * 1000 / max(len(labels), 1), 2)
-
-            # Confidence histogram
-            bins = [0]*10
-            for c in _confidences:
-                idx = min(int(c * 10), 9)
-                bins[idx] += 1
-            state['confidence_histogram'] = bins
-
-            # False positive rate (simulated — in real system would compare with ground truth)
-            total_pred_attack = state['total_alerts']
-            if total_pred_attack > 0:
-                state['false_positive_rate'] = round(np.random.uniform(1.0, 4.0), 1)
-
-            # System status badge
-            crit = state['severity']['critical']
-            med = state['severity']['medium']
-            if crit > 15 or state['detection_rate'] > 25:
-                state['system_status'] = 'critical'
-                state['threat_level'] = 'High'
-            elif crit > 5 or med > 15 or state['detection_rate'] > 12:
-                state['system_status'] = 'elevated'
-                state['threat_level'] = 'Medium'
-            else:
-                state['system_status'] = 'nominal'
-                state['threat_level'] = 'Low'
-
-            # Timeline
-            state['timeline_labels'].append(f"{int(elapsed)}s")
-            state['timeline_normal'].append(normal_count)
-            state['timeline_attack'].append(attack_count)
-            if len(state['timeline_labels']) > 60:
-                state['timeline_labels'] = state['timeline_labels'][-60:]
-                state['timeline_normal'] = state['timeline_normal'][-60:]
-                state['timeline_attack'] = state['timeline_attack'][-60:]
+    capture.stop()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -330,6 +426,8 @@ def api_state():
                               key=lambda x: x[1], reverse=True)[:6])
 
         payload = {
+            'data_source': state['data_source'],
+            'iface': state['iface'],
             'system_status': state['system_status'],
             'threat_level': state['threat_level'],
             'total_flows': state['total_flows'],
@@ -511,16 +609,43 @@ def api_alert_detail(idx):
 # ═══════════════════════════════════════════════════════════════
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="SOC Live Monitoring Dashboard")
+    parser.add_argument('--live', action='store_true',
+                        help="Bắt traffic THẬT từ NIC (cần scapy + quyền root). "
+                             "Mặc định: dữ liệu mô phỏng.")
+    parser.add_argument('--iface', default=config.NETWORK_INTERFACE,
+                        help="Tên interface để sniff (mặc định theo config / auto-detect).")
+    parser.add_argument('--host', default='0.0.0.0',
+                        help="Địa chỉ bind (0.0.0.0 để truy cập từ máy khác).")
+    parser.add_argument('--port', type=int, default=5000)
+    args = parser.parse_args()
+
     _load_model()
 
-    # Start simulation thread
-    sim_thread = threading.Thread(target=_simulation_loop, daemon=True, name="SimEngine")
-    sim_thread.start()
-    print("[+] Simulation engine started.")
-    print("[+] Dashboard: http://127.0.0.1:5000")
+    if args.live:
+        # Kiểm tra scapy trước khi start để báo lỗi rõ ràng
+        try:
+            import scapy.all  # noqa: F401
+        except ImportError:
+            print("[!] --live cần scapy. Cài: pip install scapy")
+            print("[!] Tạm fallback sang dữ liệu mô phỏng.")
+            args.live = False
+
+    if args.live:
+        engine = threading.Thread(target=_live_loop, args=(args.iface,),
+                                  daemon=True, name="LiveCapture")
+        engine.start()
+        print("[+] LIVE NIC capture engine started — dữ liệu THẬT.")
+    else:
+        engine = threading.Thread(target=_simulation_loop, daemon=True, name="SimEngine")
+        engine.start()
+        print("[+] Simulation engine started — dữ liệu MÔ PHỎNG.")
+
+    print(f"[+] Dashboard: http://{args.host}:{args.port}")
     print("[+] Press Ctrl+C to stop.\n")
 
-    app.run(host='127.0.0.1', port=5000, debug=False, threaded=True)
+    app.run(host=args.host, port=args.port, debug=False, threaded=True)
 
 
 if __name__ == '__main__':
